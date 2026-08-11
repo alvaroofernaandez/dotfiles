@@ -5,9 +5,8 @@
 ### Entorno de terminal y agentes en macOS
 
 Configuración personal centrada en un flujo de trabajo sin salir de la terminal:
-tmux, yazi y Ghostty, más Claude Code y OpenCode. Las skills son generales y
-viven una sola vez; cada agente aporta únicamente su configuración. La lógica
-propia está cubierta por tests.
+tmux, yazi y Ghostty, más Claude Code y OpenCode. Solo material propio: las
+skills de terceros no se versionan. La lógica propia está cubierta por tests.
 
 <br/>
 
@@ -72,7 +71,7 @@ brew install tmux yazi neovim bat fd ripgrep sd eza
 ```
 .
 ├── shared/
-│   └── skills/             70 skills, independientes de la herramienta
+│   └── skills/             Skills propias, independientes de la herramienta
 ├── config/
 │   ├── ghostty/            Tema Tokyo Night, tipografía y quick terminal
 │   ├── tmux/               Prefix C-a, navegación vim, popup scratch
@@ -143,13 +142,20 @@ completo va al árbol, y la previsualización la da el panel de trabajo al abrir
 
 ### Skills compartidas
 
-Las 70 skills de `shared/skills` son independientes de la herramienta y se enlazan a
-los tres destinos a la vez. Existen **una sola vez** en el repositorio.
+`shared/skills` contiene **solo skills propias**. Son independientes de la herramienta
+y se enlazan a los tres destinos a la vez, así que existen una sola vez.
 
-Antes de unificarlas estaban duplicadas y habían divergido: las copias de OpenCode
-seguían midiendo el presupuesto de PR en *"400 changed lines"*, mientras que las de
-Claude ya habían evolucionado a *"400 production lines"* con la regla de que los tests
-no cuentan. Ese es exactamente el fallo que una fuente única evita.
+| Skill | Para qué |
+| --- | --- |
+| `example-org-pdf-report` | Informes y propuestas en PDF A4 con marca |
+| `example-org-repo-prep` | Deja un repositorio con la descripción, topics y README de la casa |
+| `example-org-video-demo` | Vídeos de demo de producto de 60–90 s |
+| `ship` | De árbol de trabajo a PR publicada: commits, PRs encadenadas y revisión |
+
+Las skills instaladas desde marketplaces y packs de terceros **no se versionan aquí**:
+cada herramienta las reinstala por su cuenta y mantenerlas duplicadas solo genera
+divergencia. Cuando lo estaban, ya había pasado: dos copias de la misma skill medían el
+presupuesto de PR con reglas distintas.
 
 ### Lo que NO se comparte, y por qué
 
