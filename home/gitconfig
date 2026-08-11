@@ -1,3 +1,17 @@
 [user]
 	name = alvaroofernaandez
 	email = alvaroofernaandez@gmail.com
+
+# delta is installed; git only uses it if told to. Without this it sits unused.
+[core]
+	pager = delta
+[interactive]
+	diffFilter = delta --color-only
+[delta]
+	navigate = true
+	line-numbers = true
+	syntax-theme = Nord
+[merge]
+	conflictstyle = zdiff3
+[diff]
+	colorMoved = default
