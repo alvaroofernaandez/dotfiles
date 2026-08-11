@@ -1,5 +1,10 @@
 # Backups created by install.sh
 *.bak.*
+# Editor/tool backups picked up from source configs
+*.bak
+*.backup-*
+
+node_modules/
 
 # macOS
 .DS_Store

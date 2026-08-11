@@ -2,11 +2,11 @@
 
 # Álvaro´s Dotfiles
 
-### Entorno de terminal en macOS: tmux, yazi y Ghostty
+### Entorno de terminal y agentes en macOS
 
-Configuración personal centrada en un flujo de trabajo sin salir de la terminal.
-Incluye una barra lateral de archivos plegable construida sobre tmux, con toda su
-lógica cubierta por tests.
+Configuración personal centrada en un flujo de trabajo sin salir de la terminal:
+tmux, yazi y Ghostty, más la configuración completa de Claude Code y OpenCode
+con sus skills, agentes y comandos. La lógica propia está cubierta por tests.
 
 <br/>
 
@@ -16,14 +16,15 @@ lógica cubierta por tests.
 ![Ghostty](https://img.shields.io/badge/Ghostty-2E2E2E?style=flat)
 ![Bash](https://img.shields.io/badge/Bash-4EAA25?logo=gnubash&logoColor=white&style=flat)
 ![Neovim](https://img.shields.io/badge/Neovim-57A143?logo=neovim&logoColor=white&style=flat)
+![Claude](https://img.shields.io/badge/Claude%20Code-D97757?logo=anthropic&logoColor=white&style=flat)
 
 ![visibilidad](https://img.shields.io/badge/visibilidad-privado-red?style=flat)
-![tests](https://img.shields.io/badge/tests-56%20passing-22c55e?style=flat)
+![tests](https://img.shields.io/badge/tests-68%20passing-22c55e?style=flat)
 ![enfoque](https://img.shields.io/badge/enfoque-TDD-22c55e?style=flat)
 
 <br/>
 
-[Instalación](#instalación) · [Qué incluye](#qué-incluye) · [Barra lateral](#barra-lateral-de-archivos) · [Tests](#tests)
+[Instalación](#instalación) · [Qué incluye](#qué-incluye) · [Barra lateral](#barra-lateral-de-archivos) · [Agentes](#agentes) · [Tests](#tests)
 
 </div>
 
@@ -50,6 +51,14 @@ dejan intactos.
 | `config/yazi-sidebar` | `~/.config/yazi-sidebar` |
 | `config/ghostty` | `~/.config/ghostty` |
 | `home/tmux.conf` | `~/.tmux.conf` |
+| `config/claude/*` | `~/.claude/*` (por ruta) |
+| `config/opencode/*` | `~/.config/opencode/*` (por ruta) |
+| `config/opencode-home/skills` | `~/.opencode/skills` |
+
+Las configuraciones de agentes se enlazan **ruta por ruta**, nunca el directorio
+completo: `~/.claude` guarda además `.credentials.json` y gigabytes de historial de
+sesiones, y `~/.config/opencode` guarda `node_modules`. Enlazar el directorio entero
+desplazaría todo eso. Hay tests que lo verifican.
 
 ### Dependencias
 
@@ -69,11 +78,26 @@ brew install tmux yazi neovim bat fd ripgrep sd eza
 │   │   ├── metrics.sh
 │   │   └── tests/
 │   ├── yazi/               Config de uso general
-│   └── yazi-sidebar/       Config exclusiva de la barra lateral
+│   ├── yazi-sidebar/       Config exclusiva de la barra lateral
+│   ├── claude/             CLAUDE.md, settings, skills, agentes, comandos, hooks
+│   ├── opencode/           opencode.json, AGENTS.md, skills, agentes, plugins
+│   └── opencode-home/      Skills de ~/.opencode
 ├── home/tmux.conf
 ├── install.sh
 └── tests/
 ```
+
+### Fuera del repositorio a propósito
+
+| Ruta | Motivo |
+| --- | --- |
+| `~/.claude/.credentials.json` | Credenciales |
+| `~/.local/share/opencode/auth.json` | Credenciales |
+| `~/.local/share/opencode/mcp-auth.json` | Credenciales |
+| `~/.claude/projects`, `history.jsonl`, `file-history` | Historial de sesiones (1,6 GB) |
+| `~/.local/share/opencode/opencode.db` | Base de datos local (4,5 GB) |
+| `~/.claude/settings.local.json` | Permisos locales de una máquina concreta |
+| `node_modules`, `*.bak` | Regenerables |
 
 ## Barra lateral de archivos
 
@@ -113,6 +137,24 @@ La barra lateral usa su propia configuración de yazi con `ratio = [0, 1, 0]`: a
 columnas, el diseño de tres columnas por defecto trunca todos los nombres. Aquí el ancho
 completo va al árbol, y la previsualización la da el panel de trabajo al abrir el archivo.
 
+## Agentes
+
+### Claude Code
+
+| Ruta | Contenido |
+| --- | --- |
+| `CLAUDE.md` | Instrucciones globales: persona, TDD estricto, pipeline de diseño |
+| `sdd-orchestrator.md` | Reglas de orquestación y delegación para SDD |
+| `RTK.md`, `MCP-PER-PROJECT.md` | Referencia de herramientas y MCP por proyecto |
+| `settings.json` | Permisos, hooks, plugins y marketplaces |
+| `skills/` | 70 skills |
+| `agents/`, `commands/`, `hooks/`, `prompts/` | Subagentes, comandos y hooks |
+
+### OpenCode
+
+`opencode.json`, `AGENTS.md`, y los directorios `skills/`, `agents/`, `commands/`,
+`plugin/`, `plugins/`, `profiles/` y `prompts/`, más las skills de `~/.opencode`.
+
 ## Tests
 
 ```bash
@@ -120,12 +162,12 @@ completo va al árbol, y la previsualización la da el panel de trabajo al abrir
 ```
 
 ```
-install                20 passed, 0 failed
+install                32 passed, 0 failed
 sidebar-toggle         12 passed, 0 failed
 open-in-work-pane      14 passed, 0 failed
 yazi-sidebar-config    10 passed, 0 failed
 
-56 passed, 0 failed
+68 passed, 0 failed
 ```
 
 Cada suite levanta su propio servidor de tmux aislado (`tmux -L`) y, en el caso de
@@ -134,7 +176,10 @@ Cada suite levanta su propio servidor de tmux aislado (`tmux -L`) y, en el caso 
 Las suites de tmux y yazi comprueban la configuración **instalada** en `~/.config`, así
 que ejecuta `./install.sh` antes de lanzarlas en una máquina nueva.
 
-Un detalle que conviene conservar: `yazi-sidebar-config` verifica que las dos
-configuraciones de yazi no divergan. `YAZI_CONFIG_HOME` reemplaza a `~/.config/yazi` en
-lugar de fusionarse con ella, así que el `opener` está duplicado a propósito y el test
-falla si alguna de las dos copias se queda atrás.
+Dos comprobaciones que conviene conservar:
+
+- `install` verifica que `~/.claude` sigue siendo un directorio real tras la instalación
+  y que `.credentials.json` y `projects/` quedan intactos.
+- `yazi-sidebar-config` verifica que las dos configuraciones de yazi no divergen.
+  `YAZI_CONFIG_HOME` reemplaza a `~/.config/yazi` en lugar de fusionarse con ella, así
+  que el `opener` está duplicado a propósito y el test falla si una copia se queda atrás.

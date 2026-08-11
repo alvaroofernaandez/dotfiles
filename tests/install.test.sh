@@ -90,8 +90,53 @@ assert_eq "dry-run creates no symlink" "no" \
 assert_eq "dry-run creates no backups" "0" "$(count_backups)"
 assert_eq "dry-run leaves existing files alone" \
   "UNTOUCHED" "$(cat "$SANDBOX/.config/tmux/precious.conf" 2>/dev/null)"
+# Capture first, then match: piping straight into `rg -q` makes it exit on the
+# first hit, and the SIGPIPE that kills install.sh trips pipefail.
+dry_out="$(run_install --dry-run)"
 assert_eq "dry-run still reports what it would do" "yes" \
-  "$(run_install --dry-run | rg -qi 'tmux' && echo yes || echo no)"
+  "$(printf '%s' "$dry_out" | rg -qi 'tmux' && echo yes || echo no)"
+
+# --- agent configs are linked per-path, never wholesale ----------------------
+# ~/.claude holds credentials and gigabytes of session history alongside the
+# configs worth versioning, so only individual subpaths may be linked.
+fresh_home
+mkdir -p "$SANDBOX/.claude/projects"
+printf 'SECRET\n' > "$SANDBOX/.claude/.credentials.json"
+printf 'log\n' > "$SANDBOX/.claude/projects/session.jsonl"
+run_install >/dev/null
+
+assert_eq "links ~/.claude/skills" \
+  "$REPO/config/claude/skills" "$(readlink "$SANDBOX/.claude/skills")"
+assert_eq "links ~/.claude/agents" \
+  "$REPO/config/claude/agents" "$(readlink "$SANDBOX/.claude/agents")"
+assert_eq "links ~/.claude/CLAUDE.md" \
+  "$REPO/config/claude/CLAUDE.md" "$(readlink "$SANDBOX/.claude/CLAUDE.md")"
+assert_eq "links ~/.claude/settings.json" \
+  "$REPO/config/claude/settings.json" "$(readlink "$SANDBOX/.claude/settings.json")"
+
+assert_eq "never links ~/.claude itself" "real directory" \
+  "$([ -L "$SANDBOX/.claude" ] && echo symlink || echo "real directory")"
+assert_eq "leaves credentials untouched" \
+  "SECRET" "$(cat "$SANDBOX/.claude/.credentials.json" 2>/dev/null)"
+assert_eq "leaves session history untouched" \
+  "log" "$(cat "$SANDBOX/.claude/projects/session.jsonl" 2>/dev/null)"
+
+assert_eq "links ~/.config/opencode/agents" \
+  "$REPO/config/opencode/agents" "$(readlink "$SANDBOX/.config/opencode/agents")"
+assert_eq "links ~/.config/opencode/opencode.json" \
+  "$REPO/config/opencode/opencode.json" "$(readlink "$SANDBOX/.config/opencode/opencode.json")"
+assert_eq "never links ~/.config/opencode itself" "real directory" \
+  "$([ -L "$SANDBOX/.config/opencode" ] && echo symlink || echo "real directory")"
+assert_eq "links ~/.opencode/skills" \
+  "$REPO/config/opencode-home/skills" "$(readlink "$SANDBOX/.opencode/skills")"
+
+# node_modules living beside the linked configs must survive.
+fresh_home
+mkdir -p "$SANDBOX/.config/opencode/node_modules"
+printf 'dep\n' > "$SANDBOX/.config/opencode/node_modules/marker"
+run_install >/dev/null
+assert_eq "leaves opencode node_modules in place" \
+  "dep" "$(cat "$SANDBOX/.config/opencode/node_modules/marker" 2>/dev/null)"
 
 # --- missing source ----------------------------------------------------------
 fresh_home

@@ -1,0 +1,1 @@
+/Users/alvaroofernaandez/Proyectos/example-app/.agents/agents/code-ninja.md

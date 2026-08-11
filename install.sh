@@ -21,12 +21,43 @@ for arg in "$@"; do
 done
 
 # source-relative-to-repo : destination-relative-to-HOME
+#
+# Agent config directories are linked PER PATH, never wholesale: ~/.claude also
+# holds .credentials.json and gigabytes of session history, and
+# ~/.config/opencode holds node_modules. Linking either one entirely would
+# displace all of it.
 LINKS=(
+  # --- terminal ---
   "config/tmux:.config/tmux"
   "config/yazi:.config/yazi"
   "config/yazi-sidebar:.config/yazi-sidebar"
   "config/ghostty:.config/ghostty"
   "home/tmux.conf:.tmux.conf"
+
+  # --- claude code ---
+  "config/claude/CLAUDE.md:.claude/CLAUDE.md"
+  "config/claude/RTK.md:.claude/RTK.md"
+  "config/claude/sdd-orchestrator.md:.claude/sdd-orchestrator.md"
+  "config/claude/MCP-PER-PROJECT.md:.claude/MCP-PER-PROJECT.md"
+  "config/claude/settings.json:.claude/settings.json"
+  "config/claude/skills:.claude/skills"
+  "config/claude/agents:.claude/agents"
+  "config/claude/commands:.claude/commands"
+  "config/claude/hooks:.claude/hooks"
+  "config/claude/prompts:.claude/prompts"
+
+  # --- opencode ---
+  "config/opencode/opencode.json:.config/opencode/opencode.json"
+  "config/opencode/AGENTS.md:.config/opencode/AGENTS.md"
+  "config/opencode/package.json:.config/opencode/package.json"
+  "config/opencode/agents:.config/opencode/agents"
+  "config/opencode/commands:.config/opencode/commands"
+  "config/opencode/plugin:.config/opencode/plugin"
+  "config/opencode/plugins:.config/opencode/plugins"
+  "config/opencode/profiles:.config/opencode/profiles"
+  "config/opencode/prompts:.config/opencode/prompts"
+  "config/opencode/skills:.config/opencode/skills"
+  "config/opencode-home/skills:.opencode/skills"
 )
 
 stamp="$(date +%Y%m%d%H%M%S)"

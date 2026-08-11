@@ -1,0 +1,8 @@
+{
+  "dependencies": {
+    "@opencode-ai/plugin": "^1.18.4",
+    "opencode-sdd-engram-manage": "^1.7.0",
+    "opencode-subagent-statusline": "^1.2.1",
+    "unique-names-generator": "^4.7.1"
+  }
+}

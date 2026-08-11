@@ -1,0 +1,209 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "agent": {
+    "gentle-orchestrator": {
+      "description": "Gentle AI SDD Orchestrator - coordinates sub-agents, never does work inline",
+      "mode": "primary",
+      "prompt": "# Gentle AI — SDD Orchestrator Instructions\n\nBind this to the dedicated `gentle-orchestrator` agent only. Do NOT apply it to executor phase agents such as `sdd-apply` or `sdd-verify`.\n\n## SDD Orchestrator\n\nYou are a COORDINATOR, not an executor. Maintain one thin conversation thread, delegate ALL real work to sub-agents, synthesize results.\n\n### Delegation Rules\n\nCore principle: **does this inflate my context without need?** If yes -> delegate. If no -> do it inline.\n\n| Action | Inline | Delegate |\n|--------|--------|----------|\n| Read to decide/verify (1-3 files) | Yes | No |\n| Read to explore/understand (4+ files) | No | Yes |\n| Read as preparation for writing | No | Yes, together with the write |\n| Write atomic (one file, mechanical, you already know what) | Yes | No |\n| Write with analysis (multiple files, new logic) | No | Yes |\n| Bash for state (git, gh) | Yes | No |\n| Bash for execution (test, install, external tooling) | No | Yes |\n\n`delegate` (async) is the default for delegated work. Use `task` (sync) only when you need the result before your next action.\n\nAnti-patterns that always inflate context without need:\n- Reading 4+ files to \"understand\" the codebase inline -> delegate an exploration\n- Writing a feature across multiple files inline -> delegate\n- Running tests or external tools inline -> delegate\n- Reading files as preparation for edits, then editing -> delegate the whole thing together\n\n## SDD Workflow (Spec-Driven Development)\n\nSDD is the structured planning layer for substantial changes.\n\n### Artifact Store Policy\n\n- `engram` -> default when available; persistent memory across sessions\n- `openspec` -> file-based artifacts; use only when the user explicitly requests it\n- `hybrid` -> both backends; cross-session recovery + local files; more tokens per operation\n- `none` -> return results inline only; recommend enabling engram or openspec\n\n## Engram Memory Integration\n\nUse the engram tools for persistent memory:\n- `engram_mem_save` - save observations after bug fixes, architecture decisions, patterns\n- `engram_mem_search` - recall past decisions when user asks \"how did we...\"\n- `engram_mem_session_summary` - summarize session at the end\n- `engram_mem_session_start` - mark session start\n\n## Proactive Save Triggers\n\nCall `engram_mem_save` IMMEDIATELY after:\n- Architecture or design decision made\n- Bug fix completed (include root cause)\n- Feature implemented with non-obvious approach\n- Configuration change or environment setup\n- Discovery about the codebase\n\n## Communication Style\n\nMatch the user's language (Espanol). Be concise. Use plain Spanish without regionalisms (no voseo, no Argentine slang).\n\n## Task Management\n\nWhen user describes work to be done:\n1. Use `todowrite` to plan the tasks\n2. Update status as you progress\n3. Keep exactly one `in_progress` task\n4. Mark complete only after verification\n\n## Code Style\n\n- No Rioplatense/Argentine Spanish in code or UI strings\n- Default to English for code, comments, identifiers\n- Spanish only for user-facing strings (labels, toasts, error messages)",
+      "permission": {
+        "task": {
+          "*": "deny",
+          "sdd-apply": "allow",
+          "sdd-archive": "allow",
+          "sdd-design": "allow",
+          "sdd-explore": "allow",
+          "sdd-init": "allow",
+          "sdd-onboard": "allow",
+          "sdd-propose": "allow",
+          "sdd-spec": "allow",
+          "sdd-tasks": "allow",
+          "sdd-verify": "allow"
+        }
+      },
+      "tools": {
+        "bash": true,
+        "delegate": true,
+        "delegation_list": true,
+        "delegation_read": true,
+        "edit": true,
+        "engram_mem_save": true,
+        "engram_mem_search": true,
+        "engram_mem_context": true,
+        "engram_mem_session_summary": true,
+        "engram_mem_session_start": true,
+        "engram_mem_save_prompt": true,
+        "read": true,
+        "todowrite": true,
+        "write": true
+      }
+    },
+    "code-ninja": {
+      "description": "Concise, code-first persona for fast implementation",
+      "mode": "subagent",
+      "prompt": "{file:/Users/alvaroofernaandez/.config/opencode/agents/code-ninja.md}",
+      "tools": {
+        "bash": true,
+        "edit": true,
+        "read": true,
+        "write": true
+      }
+    },
+    "senior-architect": {
+      "description": "Senior Architect persona - helpful first, challenging when it matters",
+      "mode": "subagent",
+      "prompt": "{file:/Users/alvaroofernaandez/.config/opencode/agents/senior-architect.md}",
+      "tools": {
+        "bash": true,
+        "edit": true,
+        "read": true,
+        "write": true
+      }
+    },
+    "sdd-apply": {
+      "description": "Implement code changes from task definitions",
+      "hidden": true,
+      "mode": "subagent",
+      "prompt": "{file:/Users/alvaroofernaandez/.config/opencode/prompts/sdd/sdd-apply.md}",
+      "tools": {
+        "bash": true,
+        "edit": true,
+        "read": true,
+        "write": true
+      }
+    },
+    "sdd-archive": {
+      "description": "Archive completed change artifacts",
+      "hidden": true,
+      "mode": "subagent",
+      "prompt": "{file:/Users/alvaroofernaandez/.config/opencode/prompts/sdd/sdd-archive.md}",
+      "tools": {
+        "bash": true,
+        "edit": true,
+        "read": true,
+        "write": true
+      }
+    },
+    "sdd-design": {
+      "description": "Create technical design from proposals",
+      "hidden": true,
+      "mode": "subagent",
+      "prompt": "{file:/Users/alvaroofernaandez/.config/opencode/prompts/sdd/sdd-design.md}",
+      "tools": {
+        "bash": true,
+        "edit": true,
+        "read": true,
+        "write": true
+      }
+    },
+    "sdd-explore": {
+      "description": "Investigate codebase and think through ideas",
+      "hidden": true,
+      "mode": "subagent",
+      "prompt": "{file:/Users/alvaroofernaandez/.config/opencode/prompts/sdd/sdd-explore.md}",
+      "tools": {
+        "bash": true,
+        "edit": true,
+        "read": true,
+        "write": true
+      }
+    },
+    "sdd-init": {
+      "description": "Bootstrap SDD context and project configuration",
+      "hidden": true,
+      "mode": "subagent",
+      "prompt": "{file:/Users/alvaroofernaandez/.config/opencode/prompts/sdd/sdd-init.md}",
+      "tools": {
+        "bash": true,
+        "edit": true,
+        "read": true,
+        "write": true
+      }
+    },
+    "sdd-onboard": {
+      "description": "Guide user through a complete SDD cycle using their real codebase",
+      "hidden": true,
+      "mode": "subagent",
+      "prompt": "{file:/Users/alvaroofernaandez/.config/opencode/prompts/sdd/sdd-onboard.md}",
+      "tools": {
+        "bash": true,
+        "edit": true,
+        "read": true,
+        "write": true
+      }
+    },
+    "sdd-propose": {
+      "description": "Create change proposals from explorations",
+      "hidden": true,
+      "mode": "subagent",
+      "prompt": "{file:/Users/alvaroofernaandez/.config/opencode/prompts/sdd/sdd-propose.md}",
+      "tools": {
+        "bash": true,
+        "edit": true,
+        "read": true,
+        "write": true
+      }
+    },
+    "sdd-spec": {
+      "description": "Write detailed specifications from proposals",
+      "hidden": true,
+      "mode": "subagent",
+      "prompt": "{file:/Users/alvaroofernaandez/.config/opencode/prompts/sdd/sdd-spec.md}",
+      "tools": {
+        "bash": true,
+        "edit": true,
+        "read": true,
+        "write": true
+      }
+    },
+    "sdd-tasks": {
+      "description": "Break down specs and designs into implementation tasks",
+      "hidden": true,
+      "mode": "subagent",
+      "prompt": "{file:/Users/alvaroofernaandez/.config/opencode/prompts/sdd/sdd-tasks.md}",
+      "tools": {
+        "bash": true,
+        "edit": true,
+        "read": true,
+        "write": true
+      }
+    },
+    "sdd-verify": {
+      "description": "Validate implementation against specs",
+      "hidden": true,
+      "mode": "subagent",
+      "prompt": "{file:/Users/alvaroofernaandez/.config/opencode/prompts/sdd/sdd-verify.md}",
+      "tools": {
+        "bash": true,
+        "edit": true,
+        "read": true,
+        "write": true
+      }
+    }
+  },
+  "mcp": {
+    "context7": {
+      "enabled": true,
+      "type": "remote",
+      "url": "https://mcp.context7.com/mcp"
+    },
+    "engram": {
+      "command": [
+        "engram",
+        "mcp",
+        "--tools=agent"
+      ],
+      "type": "local",
+      "environment": {
+        "ENGRAM_CLOUD_AUTOSYNC": "1",
+        "ENGRAM_CLOUD_SERVER": "https://engram.example-org.es",
+        "ENGRAM_CLOUD_TOKEN": "{env:ENGRAM_CLOUD_TOKEN}"
+      }
+    }
+  },
+  "theme": "dark",
+  "autoupdate": true,
+  "plugin": [
+    "opencode-wakatime"
+  ],
+  "model": "opencode-go/deepseek-v4-flash"
+}
