@@ -17,7 +17,7 @@ Cada pieza está documentada, y toda la lógica propia está cubierta por tests.
 ![Zsh](https://img.shields.io/badge/Zsh-4EAA25?logo=gnubash&logoColor=white&style=for-the-badge)
 ![Claude](https://img.shields.io/badge/Claude%20Code-D97757?logo=anthropic&logoColor=white&style=for-the-badge)
 
-![tests](https://img.shields.io/badge/tests-207%20passing-22c55e?style=flat-square)
+![tests](https://img.shields.io/badge/tests-215%20passing-22c55e?style=flat-square)
 ![suites](https://img.shields.io/badge/suites-15-22c55e?style=flat-square)
 ![enfoque](https://img.shields.io/badge/enfoque-TDD-8b5cf6?style=flat-square)
 ![secretos](https://img.shields.io/badge/gitleaks-0%20hallazgos-22c55e?style=flat-square)
@@ -113,8 +113,10 @@ Los backups viven fuera de cualquier árbol escaneado, y hay un test que lo veri
 
 ### 🚀 Arranque
 
-Ghostty ejecuta `config/ghostty/launch.sh`, que resuelve tmux **por ruta absoluta** y se
-adjunta a la sesión compartida. Si tmux no estuviera, cae a una shell de login.
+Ghostty ejecuta `config/ghostty/launch.sh`, que resuelve tmux **por ruta absoluta** y
+adjunta cada pestaña a **una sesión propia** (reutilizando una libre si la hay). Si tmux
+no estuviera, cae a una shell de login: un multiplexor ausente no puede dejarte sin
+terminal.
 
 <details>
 <summary><b>¿Por qué rutas absolutas en todas partes?</b> (la lección que más veces mordió)</summary>
@@ -291,6 +293,38 @@ Un panel de **yazi** al 30 % a la izquierda, que hereda el directorio de la vent
 | Abrir / cerrar | `Alt+t` · `prefix`+`e` · clic en **`[FILES]`** |
 | Abrir archivo | `Enter` |
 | Cerrar archivo | `Ctrl+X` · `Alt+w` · `prefix`+`k` |
+
+### 🪟 Cada pestaña, su propio proyecto
+
+Cada pestaña de Ghostty abre **su propia sesión de tmux**, así que puedes trabajar en dos
+proyectos en paralelo sin que se interfieran: cada una con su sidebar, su directorio y su
+historial.
+
+> [!NOTE]
+> Si al arrancar hay una sesión **sin ningún cliente adjunto**, se reutiliza. Eso es lo que
+> hace que cerrar una pestaña no pierda su trabajo: al abrir otra, la recuperas. Solo se
+> crea una sesión nueva cuando todas están en uso.
+
+<details>
+<summary><b>El bug que llevó a esto: dos pestañas eran la misma</b></summary>
+
+<br/>
+
+El arranque hacía `tmux new-session -A -s main`, y ese `-A` significa «adjúntate si ya
+existe». Cada pestaña de Ghostty es un **cliente** distinto de tmux, pero las dos se
+adjuntaban a la misma sesión y **dibujaban la misma ventana**:
+
+```
+sesión main: 1 ventana, 2 clientes adjuntos
+  /dev/ttys003 → main     ← pestaña 1
+  /dev/ttys006 → main     ← pestaña 2
+```
+
+Un `z japan-2027` en una movía el árbol de la otra. No eran dos entornos: era uno
+renderizado dos veces. La pista estaba en la propia barra: `main 1:zsh*` idéntico en
+ambas.
+
+</details>
 
 ### 🔄 El árbol sigue tu directorio
 
@@ -596,12 +630,12 @@ secrets                 5 passed        keybindings            10 passed
 zshrc-secrets          14 passed        sidebar-button         10 passed
 shell-hygiene          11 passed        close-file              8 passed
 install                39 passed        sidebar-follow         11 passed
-launch                 12 passed        sidebar-watch           6 passed
-sidebar-toggle         18 passed        statusbar              29 passed
+launch                 17 passed        sidebar-watch           6 passed
+sidebar-toggle         21 passed        statusbar              29 passed
 open-file              17 passed        status-style            7 passed
 yazi-sidebar-config    10 passed
 
-207 passed, 0 failed
+215 passed, 0 failed
 ```
 
 Cada suite levanta su **propio servidor de tmux aislado** (`tmux -L`) y, en el caso de
