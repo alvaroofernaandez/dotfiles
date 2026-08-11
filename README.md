@@ -1,6 +1,6 @@
 <div align="center">
 
-# dotfiles
+# Álvaro´s Dotfiles
 
 ### Entorno de terminal en macOS: tmux, yazi y Ghostty
 
