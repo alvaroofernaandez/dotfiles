@@ -102,6 +102,21 @@ assert_eq "does not fail with command-not-found" "yes" \
   "$(printf '%s' "$minimal_out" | rg -qi 'not found|command not found' && echo no || echo yes)"
 assert_eq "opens the sidebar under minimal PATH" "2" "$(panes)"
 
+# The pane surviving matters more than the pane being created. With the real
+# SIDEBAR_CMD under a minimal PATH, tmux opens the pane, the command fails to
+# resolve, and the pane dies immediately — which looks like the sidebar
+# "flickering and closing". Using `sleep` as a stand-in hides this entirely,
+# because /bin/sleep resolves anywhere.
+reset_session
+work_pane="$("${TMUX_TEST[@]}" list-panes -t main -F '#{pane_id}')"
+env -i PATH="/usr/bin:/bin:/usr/sbin:/sbin" HOME="$HOME" \
+  TMUX_SOCKET="$SOCKET" TMUX_PANE="$work_pane" /bin/bash "$SCRIPT" >/dev/null 2>&1
+sleep 2.5
+
+assert_eq "the real sidebar command survives under minimal PATH" "2" "$(panes)"
+assert_eq "the sidebar pane is not dead" "0" \
+  "$("${TMUX_TEST[@]}" list-panes -t main -F '#{pane_dead}' 2>/dev/null | rg -c '^1$' || echo 0)"
+
 # --- failure reporting ------------------------------------------------------
 # A stale TMUX_PANE (e.g. inherited from another tmux server) must not be
 # swallowed: a keybind that silently does nothing is the worst outcome.

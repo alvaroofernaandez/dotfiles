@@ -13,6 +13,26 @@ SIDEBAR_CMD="${SIDEBAR_CMD:-yazi}"
 SIDEBAR_WIDTH="${SIDEBAR_WIDTH:-30%}"
 SIDEBAR_CONFIG_HOME="${SIDEBAR_CONFIG_HOME:-$HOME/.config/yazi-sidebar}"
 
+# A bare command name is resolved to an absolute path. split-window runs the
+# command with the tmux SERVER's PATH — launchd's minimal one when Ghostty
+# started the server — so an unresolvable name makes tmux open the pane and then
+# close it the instant the exec fails. That reads as the sidebar flickering
+# open and vanishing, not as an error.
+case "$SIDEBAR_CMD" in
+  */* | *' '*) : ;;   # already a path, or carries arguments: leave it alone
+  *)
+    for candidate in \
+      "$HOME/.nix-profile/bin/$SIDEBAR_CMD" \
+      /opt/homebrew/bin/"$SIDEBAR_CMD" \
+      /usr/local/bin/"$SIDEBAR_CMD" \
+      /usr/bin/"$SIDEBAR_CMD" \
+      /bin/"$SIDEBAR_CMD"
+    do
+      [ -x "$candidate" ] && { SIDEBAR_CMD="$candidate"; break; }
+    done
+    ;;
+esac
+
 # tmux is resolved by absolute path. run-shell inherits the SERVER's
 # environment, and when Ghostty starts the server that PATH is launchd's minimal
 # one with no /opt/homebrew/bin — a bare `tmux` there is not found and the whole
