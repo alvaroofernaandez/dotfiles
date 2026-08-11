@@ -19,7 +19,7 @@ skills de terceros no se versionan. La lógica propia está cubierta por tests.
 ![Claude](https://img.shields.io/badge/Claude%20Code-D97757?logo=anthropic&logoColor=white&style=flat)
 
 ![visibilidad](https://img.shields.io/badge/visibilidad-privado-red?style=flat)
-![tests](https://img.shields.io/badge/tests-123%20passing-22c55e?style=flat)
+![tests](https://img.shields.io/badge/tests-129%20passing-22c55e?style=flat)
 ![enfoque](https://img.shields.io/badge/enfoque-TDD-22c55e?style=flat)
 
 <br/>
@@ -137,8 +137,13 @@ tipografía parcheada. Las reglas completas están en [`.agents/DESIGN.md`](.age
 
 ## Barra lateral de archivos
 
-`Alt+e` abre y cierra un panel de yazi al 30% a la izquierda de la ventana actual,
+`Alt+t` (o `prefix` + `e`) abre y cierra un panel de yazi al 30% a la izquierda de la ventana actual,
 heredando su directorio.
+
+Hay dos accesos a propósito. En una distribución **Spanish - ISO**, `Option+E` es la tecla
+muerta del acento agudo: macOS la consume para componer `á`/`é` y nunca llega a tmux, así
+que `Alt+e` parecía no hacer nada. `Alt+t` no choca con ninguna tecla muerta (son `e`, `i`,
+`u`, `n`), y `prefix` + `e` no pasa por `Option` en absoluto.
 
 Ghostty no tiene sistema de plugins — es una decisión de diseño del proyecto, y sus
 mantenedores rechazan de forma explícita añadir un árbol de archivos integrado. Tampoco
@@ -235,8 +240,9 @@ open-in-work-pane      14 passed, 0 failed
 yazi-sidebar-config    10 passed, 0 failed
 statusbar              29 passed, 0 failed
 status-style            7 passed, 0 failed
+keybindings             6 passed, 0 failed
 
-123 passed, 0 failed
+129 passed, 0 failed
 ```
 
 Cada suite levanta su propio servidor de tmux aislado (`tmux -L`) y, en el caso de

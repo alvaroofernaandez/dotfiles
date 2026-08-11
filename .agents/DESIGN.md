@@ -122,6 +122,17 @@ theme instead of introducing a second palette.
 `ioreg -r -d 1 -w 0 -c AGXAccelerator` exposes `Device Utilization %`
 unprivileged in ~20ms.
 
+### 2026-08-11 — Sidebar moved off `M-e` (dead-key collision)
+`Alt+e` never reached tmux on a "Spanish - ISO" layout: `Option+E` is the dead
+key for the acute accent, so macOS consumes it to compose `á`/`é`. The binding
+was correct and the script worked; the keystroke simply never arrived.
+
+Now bound twice: `M-t` (single press, no dead-key collision — those are `e`,
+`i`, `u`, `n`) and `prefix` + `e` (never touches `Option`, so it is independent
+of layout and of `macos-option-as-alt`). Supersedes the `M-e` binding.
+
+**Rule for this project: never bind `Option` + `e`/`i`/`u`/`n`.**
+
 ### 2026-08-11 — Transparent bar (`status-style bg=default`)
 The bar was rendering on a green band. That green is *tmux's own default*
 (`bg=green,fg=black`); the kanagawa theme never assigns `status-style`, so
