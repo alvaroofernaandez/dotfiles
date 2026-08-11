@@ -80,7 +80,14 @@ else
   env_args=()
   [ -d "$SIDEBAR_CONFIG_HOME" ] && env_args=(-e "YAZI_CONFIG_HOME=$SIDEBAR_CONFIG_HOME")
 
+  # A per-window client id lets sidebar-follow.sh steer THIS instance as the
+  # work pane changes directory. yazi requires it to be globally unique.
+  client_id="$(( (RANDOM % 60000) + 2000 ))"
+
   pane="$(tmux split-window -t "$window" -h -b -l "$SIDEBAR_WIDTH" \
-    -c '#{pane_current_path}' "${env_args[@]}" -P -F '#{pane_id}' "$SIDEBAR_CMD")"
+    -c '#{pane_current_path}' "${env_args[@]}" -P -F '#{pane_id}' \
+    "$SIDEBAR_CMD --client-id $client_id")"
+
+  tmux set -w -t "$pane" @sidebar_client_id "$client_id"
   tmux set -p -t "$pane" @sidebar 1
 fi

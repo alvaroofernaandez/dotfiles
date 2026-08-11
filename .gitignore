@@ -8,3 +8,6 @@ node_modules/
 
 # macOS
 .DS_Store
+
+# Design notes stay local, not published
+.agents/
