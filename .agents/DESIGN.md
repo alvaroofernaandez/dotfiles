@@ -122,6 +122,36 @@ theme instead of introducing a second palette.
 `ioreg -r -d 1 -w 0 -c AGXAccelerator` exposes `Device Utilization %`
 unprivileged in ~20ms.
 
+### 2026-08-11 — nano as the file editor, so `Ctrl+X` closes
+Files opened from the sidebar use nano, not `$EDITOR`. The requirement was
+closing a file with `Ctrl+X`, which is nano's own Exit key — no invented
+shortcut sits in between. nano also asks "Save modified buffer?" on unsaved
+changes, so the safety property comes from the editor rather than being added
+on top. `FILE_EDITOR` overrides it.
+
+`$EDITOR` is ignored here on purpose: it is `nvim`, which needs `:q`.
+
+**macOS note:** `/usr/bin/nano` is Apple's PICO build and tmux reports the
+process as `pico`. Anything matching on the editor name must accept both.
+
+### 2026-08-11 — Clickable `[FILES]` button in the status bar
+Added because the keyboard route proved fragile on this machine (dead keys plus
+`macos-option-as-alt` behaviour). A mouse target depends on neither.
+
+It shows **no open/closed state**, deliberately: the state is already visible,
+since the panel is either on screen or it is not. A second indicator would be
+noise and would desynchronise the moment yazi is closed with `q`.
+
+Rendered as bracketed text, never as a solid block — in this bar solid blocks
+mean measurements, so a control has to read differently. Clicking anywhere else
+on the bar keeps tmux's default window selection.
+
+### 2026-08-11 — `allow-passthrough on` for yazi
+yazi sends DA1/DSR probes at startup to detect terminal capabilities. With
+passthrough off, tmux swallowed them and yazi waited out its full timeout,
+printing "Terminal response timeout" over the panel for seconds before drawing.
+Enabling passthrough lets the probes reach Ghostty.
+
 ### 2026-08-11 — Sidebar moved off `M-e` (dead-key collision)
 `Alt+e` never reached tmux on a "Spanish - ISO" layout: `Option+E` is the dead
 key for the acute accent, so macOS consumes it to compose `á`/`é`. The binding

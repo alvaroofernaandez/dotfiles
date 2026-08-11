@@ -64,6 +64,21 @@ completo: `~/.claude` guarda además `.credentials.json` y gigabytes de historia
 sesiones, y `~/.config/opencode` guarda `node_modules`. Enlazar el directorio entero
 desplazaría todo eso. Hay tests que lo verifican.
 
+### Arranque
+
+Ghostty lanza `config/ghostty/launch.sh`, que resuelve tmux por ruta absoluta y se
+adjunta a la sesión compartida. Si tmux no estuviera disponible, cae a una shell de
+login: un multiplexor ausente no puede dejarte sin terminal.
+
+La ruta absoluta no es un capricho. Ghostty ejecuta su comando a través de
+`/usr/bin/login -flp <usuario> /bin/bash --noprofile --norc`, que hereda el PATH mínimo
+de launchd, sin `/opt/homebrew/bin`. Por el mismo motivo, los scripts de tmux y los
+comandos que lanzan (yazi, el editor) también se resuelven por ruta absoluta.
+
+`tmux.conf` activa `allow-passthrough on`: yazi envía sondas DA1/DSR al arrancar y, sin
+passthrough, tmux las bloquea y yazi espera a agotar su tiempo mostrando
+«Terminal response timeout» sobre el panel.
+
 ### Dependencias
 
 ```bash
