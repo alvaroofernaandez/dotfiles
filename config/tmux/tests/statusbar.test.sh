@@ -102,8 +102,12 @@ assert_eq "keeps exactly one padding space at the end" "yes" \
 # --- locale independence -----------------------------------------------------
 # tmux inherits whatever environment launched the server. Under es_ES awk emits
 # a comma decimal separator and date emits Spanish month names of varying width.
-es_out="$(LANG=es_ES.UTF-8 LC_ALL=es_ES.UTF-8 bash "$SCRIPT" 2>/dev/null | sd '[0-9]' 'N')"
-c_out="$(LANG=C LC_ALL=C bash "$SCRIPT" 2>/dev/null | sd '[0-9]' 'N')"
+# Whole runs of digits collapse to a single token. Normalising digit-by-digit
+# made this flaky: the readings change between the two invocations, so a GPU
+# going from 23% to 9% produced "NN%" vs "N%" and failed on live data rather
+# than on formatting, which is all this test is about.
+es_out="$(LANG=es_ES.UTF-8 LC_ALL=es_ES.UTF-8 bash "$SCRIPT" 2>/dev/null | sd '[0-9]+' 'N')"
+c_out="$(LANG=C LC_ALL=C bash "$SCRIPT" 2>/dev/null | sd '[0-9]+' 'N')"
 assert_eq "renders identically regardless of locale" "$c_out" "$es_out"
 assert_eq "uses a dot as decimal separator" "yes" \
   "$(LANG=es_ES.UTF-8 bash "$SCRIPT" 2>/dev/null | rg -q 'RAM [0-9]+\.[0-9]' && echo yes || echo no)"

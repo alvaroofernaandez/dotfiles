@@ -13,9 +13,25 @@ SIDEBAR_CMD="${SIDEBAR_CMD:-yazi}"
 SIDEBAR_WIDTH="${SIDEBAR_WIDTH:-30%}"
 SIDEBAR_CONFIG_HOME="${SIDEBAR_CONFIG_HOME:-$HOME/.config/yazi-sidebar}"
 
+# tmux is resolved by absolute path. run-shell inherits the SERVER's
+# environment, and when Ghostty starts the server that PATH is launchd's minimal
+# one with no /opt/homebrew/bin — a bare `tmux` there is not found and the whole
+# script exits 127, which reads as "the keybinding does nothing".
+TMUX_BIN="${TMUX_BIN:-}"
+if [ -z "$TMUX_BIN" ]; then
+  for candidate in /opt/homebrew/bin/tmux /usr/local/bin/tmux \
+                   "$HOME/.nix-profile/bin/tmux" /usr/bin/tmux; do
+    [ -x "$candidate" ] && { TMUX_BIN="$candidate"; break; }
+  done
+  [ -n "$TMUX_BIN" ] || TMUX_BIN="$(command -v tmux 2>/dev/null)"
+fi
+[ -n "$TMUX_BIN" ] || { echo "sidebar-toggle: tmux not found" >&2; exit 127; }
+
 # TMUX_SOCKET lets the test suite drive an isolated server.
 if [ -n "${TMUX_SOCKET:-}" ]; then
-  tmux() { command tmux -L "$TMUX_SOCKET" "$@"; }
+  tmux() { "$TMUX_BIN" -L "$TMUX_SOCKET" "$@"; }
+else
+  tmux() { "$TMUX_BIN" "$@"; }
 fi
 
 # Anchor every lookup to the window the toggle was fired from, so other

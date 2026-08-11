@@ -16,6 +16,7 @@ SUITES=(
   "$REPO/config/tmux/tests/statusbar.test.sh"
   "$REPO/config/tmux/tests/status-style.test.sh"
   "$REPO/config/tmux/tests/keybindings.test.sh"
+  "$REPO/config/tmux/tests/sidebar-button.test.sh"
 )
 
 total_pass=0

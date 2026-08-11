@@ -12,9 +12,22 @@ set -uo pipefail
 
 EDITOR_CMD="${EDITOR:-vi}"
 
+# tmux is resolved by absolute path: yazi's opener inherits the tmux server's
+# environment, whose PATH is launchd's minimal one when Ghostty started it.
+TMUX_BIN="${TMUX_BIN:-}"
+if [ -z "$TMUX_BIN" ]; then
+  for candidate in /opt/homebrew/bin/tmux /usr/local/bin/tmux \
+                   "$HOME/.nix-profile/bin/tmux" /usr/bin/tmux; do
+    [ -x "$candidate" ] && { TMUX_BIN="$candidate"; break; }
+  done
+  [ -n "$TMUX_BIN" ] || TMUX_BIN="$(command -v tmux 2>/dev/null)"
+fi
+
 # TMUX_SOCKET lets the test suite drive an isolated server.
 if [ -n "${TMUX_SOCKET:-}" ]; then
-  tmux() { command tmux -L "$TMUX_SOCKET" "$@"; }
+  tmux() { "$TMUX_BIN" -L "$TMUX_SOCKET" "$@"; }
+elif [ -n "$TMUX_BIN" ]; then
+  tmux() { "$TMUX_BIN" "$@"; }
 fi
 
 # Run the editor in this pane. Used whenever delegation isn't possible.

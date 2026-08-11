@@ -85,6 +85,23 @@ assert_eq "reopens after closing" "2" "$(panes)"
 assert_eq "other windows have no sidebar" \
   "1" "$("${TMUX_TEST[@]}" list-panes -F '#{pane_id}' | wc -l | tr -d ' ')"
 
+# --- runs under launchd's minimal PATH ---------------------------------------
+# tmux's run-shell inherits the SERVER's environment. When Ghostty starts the
+# server, that PATH is launchd's minimal one, with no /opt/homebrew/bin. A bare
+# `tmux` inside the script is then not found and the whole thing exits 127,
+# which is exactly how this failed in practice.
+reset_session
+work_pane="$("${TMUX_TEST[@]}" list-panes -t main -F '#{pane_id}')"
+minimal_out="$(env -i PATH="/usr/bin:/bin:/usr/sbin:/sbin" HOME="$HOME" \
+  SIDEBAR_CMD="sleep 600" TMUX_SOCKET="$SOCKET" TMUX_PANE="$work_pane" \
+  /bin/bash "$SCRIPT" 2>&1)"
+minimal_rc=$?
+
+assert_eq "runs under launchd's minimal PATH" "0" "$minimal_rc"
+assert_eq "does not fail with command-not-found" "yes" \
+  "$(printf '%s' "$minimal_out" | rg -qi 'not found|command not found' && echo no || echo yes)"
+assert_eq "opens the sidebar under minimal PATH" "2" "$(panes)"
+
 # --- failure reporting ------------------------------------------------------
 # A stale TMUX_PANE (e.g. inherited from another tmux server) must not be
 # swallowed: a keybind that silently does nothing is the worst outcome.

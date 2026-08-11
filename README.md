@@ -19,7 +19,7 @@ skills de terceros no se versionan. La lógica propia está cubierta por tests.
 ![Claude](https://img.shields.io/badge/Claude%20Code-D97757?logo=anthropic&logoColor=white&style=flat)
 
 ![visibilidad](https://img.shields.io/badge/visibilidad-privado-red?style=flat)
-![tests](https://img.shields.io/badge/tests-129%20passing-22c55e?style=flat)
+![tests](https://img.shields.io/badge/tests-143%20passing-22c55e?style=flat)
 ![enfoque](https://img.shields.io/badge/enfoque-TDD-22c55e?style=flat)
 
 <br/>
@@ -137,7 +137,8 @@ tipografía parcheada. Las reglas completas están en [`.agents/DESIGN.md`](.age
 
 ## Barra lateral de archivos
 
-`Alt+t` (o `prefix` + `e`) abre y cierra un panel de yazi al 30% a la izquierda de la ventana actual,
+Tres formas de abrir y cerrar el panel de yazi al 30%: el botón **`[FILES]`** de la barra
+superior, `Alt+t`, o `prefix` + `e`. El panel ocupa el 30% a la izquierda de la ventana actual,
 heredando su directorio.
 
 Hay dos accesos a propósito. En una distribución **Spanish - ISO**, `Option+E` es la tecla
@@ -240,9 +241,10 @@ open-in-work-pane      14 passed, 0 failed
 yazi-sidebar-config    10 passed, 0 failed
 statusbar              29 passed, 0 failed
 status-style            7 passed, 0 failed
-keybindings             6 passed, 0 failed
+keybindings             7 passed, 0 failed
+sidebar-button         10 passed, 0 failed
 
-129 passed, 0 failed
+143 passed, 0 failed
 ```
 
 Cada suite levanta su propio servidor de tmux aislado (`tmux -L`) y, en el caso de
