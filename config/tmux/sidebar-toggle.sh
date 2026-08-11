@@ -82,12 +82,20 @@ else
 
   # A per-window client id lets sidebar-follow.sh steer THIS instance as the
   # work pane changes directory. yazi requires it to be globally unique.
+  #
+  # Only appended for yazi: --client-id is its flag, and passing it to any other
+  # SIDEBAR_CMD makes that command fail its argument parsing and the pane dies
+  # instantly.
   client_id="$(( (RANDOM % 60000) + 2000 ))"
+  launch="$SIDEBAR_CMD"
+  case "$SIDEBAR_CMD" in
+    *yazi) launch="$SIDEBAR_CMD --client-id $client_id" ;;
+    *) client_id="" ;;
+  esac
 
   pane="$(tmux split-window -t "$window" -h -b -l "$SIDEBAR_WIDTH" \
-    -c '#{pane_current_path}' "${env_args[@]}" -P -F '#{pane_id}' \
-    "$SIDEBAR_CMD --client-id $client_id")"
+    -c '#{pane_current_path}' "${env_args[@]}" -P -F '#{pane_id}' "$launch")"
 
-  tmux set -w -t "$pane" @sidebar_client_id "$client_id"
+  [ -n "$client_id" ] && tmux set -w -t "$pane" @sidebar_client_id "$client_id"
   tmux set -p -t "$pane" @sidebar 1
 fi

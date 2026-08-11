@@ -69,9 +69,18 @@ assert_eq "does not invoke ya when there is no sidebar" "no" \
   "$([ -s "$CALLS" ] && echo yes || echo no)"
 
 # --- the toggle records the instance id --------------------------------------
+# The stand-in must be NAMED yazi: --client-id is yazi's own flag, so the toggle
+# only appends it for yazi. A generic `sleep` double would take a different code
+# path and prove nothing about the real one.
+cat > "$WORKDIR/bin/yazi" <<'EOF'
+#!/usr/bin/env bash
+sleep 600
+EOF
+chmod +x "$WORKDIR/bin/yazi"
+
 setup_session
 work_pane="$("${TMUX_TEST[@]}" list-panes -t main -F '#{pane_id}')"
-SIDEBAR_CMD="sleep 600" TMUX_SOCKET="$SOCKET" TMUX_PANE="$work_pane" bash "$TOGGLE" >/dev/null 2>&1
+SIDEBAR_CMD="$WORKDIR/bin/yazi" TMUX_SOCKET="$SOCKET" TMUX_PANE="$work_pane" bash "$TOGGLE" >/dev/null 2>&1
 sleep 0.6
 
 client_id="$("${TMUX_TEST[@]}" display -p -t "$work_pane" '#{@sidebar_client_id}' 2>/dev/null)"

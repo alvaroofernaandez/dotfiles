@@ -8,6 +8,7 @@ set -uo pipefail
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 SUITES=(
+  "$REPO/tests/secrets.test.sh"
   "$REPO/tests/install.test.sh"
   "$REPO/tests/launch.test.sh"
   "$REPO/config/tmux/tests/sidebar-toggle.test.sh"
@@ -18,6 +19,7 @@ SUITES=(
   "$REPO/config/tmux/tests/keybindings.test.sh"
   "$REPO/config/tmux/tests/sidebar-button.test.sh"
   "$REPO/config/tmux/tests/close-file.test.sh"
+  "$REPO/config/tmux/tests/sidebar-follow.test.sh"
 )
 
 total_pass=0
