@@ -59,7 +59,7 @@ setup_session() {
 }
 
 open_file() {
-  TMUX_SOCKET="$SOCKET" EDITOR="$FAKE_EDITOR" bash "$SCRIPT" "$@" 2>&1
+  TMUX_SOCKET="$SOCKET" FILE_EDITOR="$FAKE_EDITOR" bash "$SCRIPT" "$@" 2>&1
 }
 
 echo "open-file"
@@ -133,15 +133,48 @@ assert_eq "passes every selected file" \
 # minimal PATH when Ghostty started the server.
 setup_session
 env -i PATH="/usr/bin:/bin:/usr/sbin:/sbin" HOME="$HOME" \
-  TMUX_SOCKET="$SOCKET" EDITOR="$FAKE_EDITOR" /bin/bash "$SCRIPT" "$WORKDIR/.env" >/dev/null 2>&1
+  TMUX_SOCKET="$SOCKET" FILE_EDITOR="$FAKE_EDITOR" /bin/bash "$SCRIPT" "$WORKDIR/.env" >/dev/null 2>&1
 sleep 1.5
 assert_eq "opens a window under minimal PATH" "2" "$(windows)"
 
 # --- fallback outside tmux ---------------------------------------------------
 rm -f "$ARGS_FILE"
-TMUX_SOCKET="" TMUX="" TMUX_BIN="/nonexistent/tmux" EDITOR="$FAKE_EDITOR" \
+TMUX_SOCKET="" TMUX="" TMUX_BIN="/nonexistent/tmux" FILE_EDITOR="$FAKE_EDITOR" \
   timeout 3 bash "$SCRIPT" "$WORKDIR/.env" >/dev/null 2>&1
 assert_eq "falls back to running the editor directly" \
+  "$WORKDIR/.env" "$(tail -1 "$ARGS_FILE" 2>/dev/null)"
+
+# --- default editor exits with Ctrl+X ----------------------------------------
+# The sidebar deliberately does NOT follow $EDITOR: that is nvim here, which
+# needs :q. The requirement is a file you can close with Ctrl+X, so the default
+# is nano — and nano asks "Save modified buffer?" rather than discarding work.
+# Asserted by behaviour, not by grepping the source: what matters is which
+# editor actually ends up running in the window.
+setup_session
+EDITOR="/should/not/be/used" TMUX_SOCKET="$SOCKET" \
+  bash "$SCRIPT" "$WORKDIR/.env" >/dev/null 2>&1
+sleep 1.2
+opened="$("${TMUX_TEST[@]}" list-windows -F '#{window_id}|#{?@file_window,1,0}' 2>/dev/null | awk -F'|' '$2=="1"{print $1}')"
+opened_pane="$("${TMUX_TEST[@]}" list-panes -t "$opened" -F '#{pane_id}' 2>/dev/null | head -1)"
+# macOS ships nano as Apple's PICO build, so tmux reports the process as "pico".
+# close-file.sh matches both names for exactly this reason.
+running="$("${TMUX_TEST[@]}" display -p -t "$opened_pane" '#{pane_current_command}' 2>/dev/null)"
+assert_eq "defaults to nano/pico, which exits with Ctrl+X" "yes" \
+  "$(case "$running" in nano | pico) echo yes ;; *) echo "no ($running)" ;; esac)"
+assert_eq "ignores \$EDITOR for this flow" "yes" \
+  "$("${TMUX_TEST[@]}" capture-pane -p -t "$opened_pane" 2>/dev/null | rg -q 'should/not/be/used' && echo no || echo yes)"
+
+# Ctrl+X must actually close it — the whole reason nano is the default.
+"${TMUX_TEST[@]}" send-keys -t "$opened_pane" C-x
+sleep 1
+assert_eq "Ctrl+X closes the file window" "1" "$(windows)"
+
+setup_session
+rm -f "$ARGS_FILE"
+EDITOR="/should/not/be/used" FILE_EDITOR="$FAKE_EDITOR" TMUX_SOCKET="$SOCKET" \
+  bash "$SCRIPT" "$WORKDIR/.env" >/dev/null 2>&1
+wait_for_args
+assert_eq "FILE_EDITOR overrides the default" \
   "$WORKDIR/.env" "$(tail -1 "$ARGS_FILE" 2>/dev/null)"
 
 printf '\n%d passed, %d failed\n' "$pass" "$fail"

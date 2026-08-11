@@ -47,6 +47,12 @@ fi
 current="$(tmux_cmd display -p -t "$pane" '#{pane_current_command}' 2>/dev/null)"
 
 case "$current" in
+  nano | pico)
+    # ^X is nano's own Exit. With unsaved changes it asks "Save modified
+    # buffer?" and waits, so nothing is discarded behind the user's back.
+    tmux_cmd send-keys -t "$pane" C-x
+    echo "asked $current to quit"
+    ;;
   nvim | vim | view | vi)
     # Leave whatever mode it is in, then ask it to quit. An editor with unsaved
     # changes will refuse and say so, which is the point.

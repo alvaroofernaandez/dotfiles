@@ -12,7 +12,11 @@ set -uo pipefail
 
 [ "$#" -gt 0 ] || { echo "usage: ${0##*/} <file>..." >&2; exit 2; }
 
-EDITOR_CMD="${EDITOR:-vi}"
+# Deliberately NOT $EDITOR. That is nvim here, which needs :q to leave; the
+# requirement for this flow is a file you can close with Ctrl+X. nano does that
+# natively and asks "Save modified buffer?" instead of discarding changes.
+# Override with FILE_EDITOR if you ever want something else.
+EDITOR_CMD="${FILE_EDITOR:-nano}"
 
 # Absolute paths throughout: this runs from yazi, which inherits the tmux
 # server's environment — launchd's minimal PATH when Ghostty started the server.

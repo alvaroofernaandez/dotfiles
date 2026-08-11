@@ -19,7 +19,7 @@ skills de terceros no se versionan. La lógica propia está cubierta por tests.
 ![Claude](https://img.shields.io/badge/Claude%20Code-D97757?logo=anthropic&logoColor=white&style=flat)
 
 ![visibilidad](https://img.shields.io/badge/visibilidad-privado-red?style=flat)
-![tests](https://img.shields.io/badge/tests-156%20passing-22c55e?style=flat)
+![tests](https://img.shields.io/badge/tests-160%20passing-22c55e?style=flat)
 ![enfoque](https://img.shields.io/badge/enfoque-TDD-22c55e?style=flat)
 
 <br/>
@@ -159,7 +159,13 @@ Al abrir un archivo desde la barra lateral, se crea una **ventana nueva** de tmu
 build, un REPL, un editor con cambios sin guardar— sigue igual, sin recibir pulsaciones
 ni perder el foco. Al cerrar el editor, la ventana desaparece y vuelves donde estabas.
 
-Para cerrarlo, `Alt+w` o `prefix` + `k`, sin escribir el comando de salida del editor.
+El editor por defecto es **nano**, para poder cerrar con **`Ctrl+X`** sin escribir ningún
+comando. Si el archivo tiene cambios sin guardar, nano pregunta antes de salir. Cámbialo
+con `FILE_EDITOR` si prefieres otro.
+
+Este flujo **no sigue a `$EDITOR`** a propósito: ahí tienes `nvim`, que necesita `:q`.
+
+También puedes cerrar con `Alt+w` o `prefix` + `k`, sin escribir el comando de salida del editor.
 Solo cierra ventanas abiertas desde la barra lateral: si lo pulsas en una ventana de
 trabajo, se niega y te lo dice. Y a un editor de la familia vim le **pide** salir con
 `:q` en vez de matarlo, así que si tienes cambios sin guardar decide el editor, no el
@@ -238,7 +244,7 @@ una conserva la suya.
 install                39 passed, 0 failed
 launch                 12 passed, 0 failed
 sidebar-toggle         12 passed, 0 failed
-open-file              13 passed, 0 failed
+open-file              17 passed, 0 failed
 close-file              8 passed, 0 failed
 yazi-sidebar-config    10 passed, 0 failed
 statusbar              29 passed, 0 failed
@@ -246,7 +252,7 @@ status-style            7 passed, 0 failed
 keybindings            10 passed, 0 failed
 sidebar-button         10 passed, 0 failed
 
-156 passed, 0 failed
+160 passed, 0 failed
 ```
 
 Cada suite levanta su propio servidor de tmux aislado (`tmux -L`) y, en el caso de
