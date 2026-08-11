@@ -19,12 +19,12 @@ skills de terceros no se versionan. La lógica propia está cubierta por tests.
 ![Claude](https://img.shields.io/badge/Claude%20Code-D97757?logo=anthropic&logoColor=white&style=flat)
 
 ![visibilidad](https://img.shields.io/badge/visibilidad-privado-red?style=flat)
-![tests](https://img.shields.io/badge/tests-71%20passing-22c55e?style=flat)
+![tests](https://img.shields.io/badge/tests-102%20passing-22c55e?style=flat)
 ![enfoque](https://img.shields.io/badge/enfoque-TDD-22c55e?style=flat)
 
 <br/>
 
-[Instalación](#instalación) · [Qué incluye](#qué-incluye) · [Barra lateral](#barra-lateral-de-archivos) · [Agentes](#agentes) · [Tests](#tests)
+[Instalación](#instalación) · [Barra de estado](#barra-de-estado) · [Barra lateral](#barra-lateral-de-archivos) · [Agentes](#agentes) · [Tests](#tests)
 
 </div>
 
@@ -40,9 +40,13 @@ cd ~/dotfiles
 ```
 
 `install.sh` crea enlaces simbólicos desde `$HOME` hacia este repositorio. **Nunca borra
-nada**: si ya tienes una configuración en el destino, la mueve a `<ruta>.bak.<timestamp>`
-antes de enlazar. Volver a ejecutarlo es seguro — los enlaces que ya apuntan aquí se
-dejan intactos.
+nada**: si ya tienes una configuración en el destino, la mueve a
+`~/.dotfiles-backup/<timestamp>/` antes de enlazar. Volver a ejecutarlo es seguro — los
+enlaces que ya apuntan aquí se dejan intactos.
+
+Los backups van a ese directorio aparte, y no junto al original, porque las herramientas
+escanean sus carpetas de configuración enteras: un `ship.bak.<timestamp>` dentro de
+`~/.claude/skills` se cargaría como una segunda skill duplicada.
 
 | Origen en el repo | Destino |
 | --- | --- |
@@ -77,7 +81,7 @@ brew install tmux yazi neovim bat fd ripgrep sd eza
 │   ├── tmux/               Prefix C-a, navegación vim, popup scratch
 │   │   ├── sidebar-toggle.sh
 │   │   ├── open-in-work-pane.sh
-│   │   ├── metrics.sh
+│   │   ├── statusbar.sh
 │   │   └── tests/
 │   ├── yazi/               Config de uso general
 │   ├── yazi-sidebar/       Config exclusiva de la barra lateral
@@ -99,6 +103,33 @@ brew install tmux yazi neovim bat fd ripgrep sd eza
 | `~/.local/share/opencode/opencode.db` | Base de datos local (4,5 GB) |
 | `~/.claude/settings.local.json` | Permisos locales de una máquina concreta |
 | `node_modules`, `*.bak` | Regenerables |
+
+## Barra de estado
+
+Fila superior, con cada dato en su propio bloque de color:
+
+```
+ target  1 zsh          CPU 13%   GPU 23%   RAM 8.3/16.0G   13:28   11 Aug
+```
+
+| Segmento | Color Kanagawa | Fuente del dato |
+| --- | --- | --- |
+| CPU | crystalBlue | `sysctl vm.loadavg` dividido por núcleos |
+| GPU | oniViolet | `ioreg -c AGXAccelerator` → `Device Utilization %` |
+| RAM | springGreen | `vm_stat`: active + wired + compressed |
+| Hora | carpYellow | `date` |
+| Fecha | sakuraPink | `date` |
+
+El color identifica la métrica; nunca es el único portador de información, porque cada
+bloque lleva su etiqueta y su valor. Un valor por encima del 85 % cambia a `autumnRed`.
+
+Cuesta **~32 ms por refresco**. La GPU se lee con `ioreg` porque `powermetrics` exige
+superusuario y no puede ejecutarse desde un hook de estado. La CPU sale del load average:
+muestrear utilización real exige dos lecturas separadas por un `sleep`, que es lo que
+hacía que la versión anterior costase segundos.
+
+Sin glifos de Nerd Font: solo ASCII, así que la fila no se rompe en un terminal sin
+tipografía parcheada. Las reglas completas están en [`.agents/DESIGN.md`](.agents/DESIGN.md).
 
 ## Barra lateral de archivos
 
@@ -193,12 +224,13 @@ una conserva la suya.
 ```
 
 ```
-install                35 passed, 0 failed
+install                39 passed, 0 failed
 sidebar-toggle         12 passed, 0 failed
 open-in-work-pane      14 passed, 0 failed
 yazi-sidebar-config    10 passed, 0 failed
+statusbar              27 passed, 0 failed
 
-71 passed, 0 failed
+102 passed, 0 failed
 ```
 
 Cada suite levanta su propio servidor de tmux aislado (`tmux -L`) y, en el caso de
