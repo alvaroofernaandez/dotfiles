@@ -117,6 +117,44 @@ assert_eq "the real sidebar command survives under minimal PATH" "2" "$(panes)"
 assert_eq "the sidebar pane is not dead" "0" \
   "$("${TMUX_TEST[@]}" list-panes -t main -F '#{pane_dead}' 2>/dev/null | rg -c '^1$' || echo 0)"
 
+# --- two windows in parallel, each with its own sidebar ----------------------
+# Working on two projects at once is the normal case. Each window's sidebar must
+# start in ITS OWN directory: `split-window -t <pane> -c '#{pane_current_path}'`
+# creates the pane in the right window but expands -c against the ACTIVE pane,
+# so the second sidebar inherited the first project's directory.
+"${TMUX_TEST[@]}" kill-server 2>/dev/null
+dir_a="$WORKDIR/proyecto-a"; dir_b="$WORKDIR/proyecto-b"
+mkdir -p "$dir_a" "$dir_b"
+
+"${TMUX_TEST[@]}" new-session -d -s main -c "$dir_a" -x 200 -y 50
+sleep 0.4
+win_a="$("${TMUX_TEST[@]}" list-windows -t main -F '#{window_id}')"
+pane_a="$("${TMUX_TEST[@]}" list-panes -t "$win_a" -F '#{pane_id}')"
+
+"${TMUX_TEST[@]}" new-window -t main -c "$dir_b"
+sleep 0.4
+win_b="$("${TMUX_TEST[@]}" list-windows -t main -F '#{window_id}' | tail -1)"
+pane_b="$("${TMUX_TEST[@]}" list-panes -t "$win_b" -F '#{pane_id}')"
+
+# Window B is active here, so opening A's sidebar is the case that used to break.
+SIDEBAR_CMD="sleep 600" TMUX_SOCKET="$SOCKET" TMUX_PANE="$pane_a" bash "$SCRIPT" >/dev/null 2>&1
+SIDEBAR_CMD="sleep 600" TMUX_SOCKET="$SOCKET" TMUX_PANE="$pane_b" bash "$SCRIPT" >/dev/null 2>&1
+sleep 0.8
+
+sb_a="$("${TMUX_TEST[@]}" list-panes -t "$win_a" -F '#{pane_id}|#{?@sidebar,1,0}' | awk -F'|' '$2=="1"{print $1}')"
+sb_b="$("${TMUX_TEST[@]}" list-panes -t "$win_b" -F '#{pane_id}|#{?@sidebar,1,0}' | awk -F'|' '$2=="1"{print $1}')"
+
+assert_eq "each window gets its own sidebar" "yes" \
+  "$([ -n "$sb_a" ] && [ -n "$sb_b" ] && [ "$sb_a" != "$sb_b" ] && echo yes || echo no)"
+
+assert_eq "window A's sidebar starts in project A" \
+  "$(cd "$dir_a" && pwd -P)" \
+  "$(cd "$("${TMUX_TEST[@]}" display -p -t "$sb_a" '#{pane_current_path}')" && pwd -P)"
+
+assert_eq "window B's sidebar starts in project B" \
+  "$(cd "$dir_b" && pwd -P)" \
+  "$(cd "$("${TMUX_TEST[@]}" display -p -t "$sb_b" '#{pane_current_path}')" && pwd -P)"
+
 # --- terminal passthrough for yazi -------------------------------------------
 # yazi sends DA1/DSR probes at startup to detect terminal features. With
 # allow-passthrough off, tmux blocks them, yazi waits for the timeout and prints

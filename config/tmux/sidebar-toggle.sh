@@ -93,8 +93,16 @@ else
     *) client_id="" ;;
   esac
 
+  # The directory is resolved against the TARGET pane and passed literally.
+  # `-c '#{pane_current_path}'` looks right but expands against the ACTIVE pane,
+  # not the one in -t: opening a sidebar in a background window then inherited
+  # the foreground window's directory, so two projects side by side showed the
+  # same tree.
+  target_cwd="$(tmux display -p -t "$window" '#{pane_current_path}' 2>/dev/null)"
+  [ -n "$target_cwd" ] || target_cwd="$HOME"
+
   pane="$(tmux split-window -t "$window" -h -b -l "$SIDEBAR_WIDTH" \
-    -c '#{pane_current_path}' "${env_args[@]}" -P -F '#{pane_id}' "$launch")"
+    -c "$target_cwd" "${env_args[@]}" -P -F '#{pane_id}' "$launch")"
 
   if [ -n "$client_id" ]; then
     tmux set -w -t "$pane" @sidebar_client_id "$client_id"
