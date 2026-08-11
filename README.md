@@ -19,7 +19,7 @@ skills de terceros no se versionan. La lógica propia está cubierta por tests.
 ![Claude](https://img.shields.io/badge/Claude%20Code-D97757?logo=anthropic&logoColor=white&style=flat)
 
 ![visibilidad](https://img.shields.io/badge/visibilidad-privado-red?style=flat)
-![tests](https://img.shields.io/badge/tests-160%20passing-22c55e?style=flat)
+![tests](https://img.shields.io/badge/tests-190%20passing-22c55e?style=flat)
 ![enfoque](https://img.shields.io/badge/enfoque-TDD-22c55e?style=flat)
 
 <br/>
@@ -55,6 +55,8 @@ escanean sus carpetas de configuración enteras: un `ship.bak.<timestamp>` dentr
 | `config/yazi-sidebar` | `~/.config/yazi-sidebar` |
 | `config/ghostty` | `~/.config/ghostty` |
 | `home/tmux.conf` | `~/.tmux.conf` |
+| `home/zshrc`, `zprofile`, `gitconfig`, `p10k.zsh` | `~/.zshrc`, `~/.zprofile`, `~/.gitconfig`, `~/.p10k.zsh` |
+| `config/atuin`, `gh`, `git` | `~/.config/atuin`, `gh`, `git` (por ruta) |
 | `shared/skills` | `~/.claude/skills`, `~/.config/opencode/skills`, `~/.opencode/skills` |
 | `config/claude/*` | `~/.claude/*` (por ruta) |
 | `config/opencode/*` | `~/.config/opencode/*` (por ruta) |
@@ -78,6 +80,16 @@ comandos que lanzan (yazi, el editor) también se resuelven por ruta absoluta.
 `tmux.conf` activa `allow-passthrough on`: yazi envía sondas DA1/DSR al arrancar y, sin
 passthrough, tmux las bloquea y yazi espera a agotar su tiempo mostrando
 «Terminal response timeout» sobre el panel.
+
+### Herramientas de terminal
+
+`bat`, `zoxide`, `fzf` y `eza` **no tienen fichero de configuración propio**: todo su
+ajuste (aliases, `eval "$(zoxide init zsh)"`, `FZF_DEFAULT_COMMAND`, `LS_COLORS`) vive en
+`~/.zshrc`, que por eso se versiona. `atuin`, `gh` y `git` sí tienen fichero y van aparte.
+
+Las credenciales no están aquí: se cargan desde `~/.config/zsh/secrets.zsh`, que está
+fuera del repositorio. Una suite de tests con `gitleaks` verifica en cada ejecución que
+no se ha colado ninguna.
 
 ### Dependencias
 

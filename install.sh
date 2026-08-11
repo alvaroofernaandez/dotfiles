@@ -34,6 +34,9 @@ LINKS=(
   "config/ghostty:.config/ghostty"
   "home/tmux.conf:.tmux.conf"
   "home/zshrc:.zshrc"
+  "home/zprofile:.zprofile"
+  "home/gitconfig:.gitconfig"
+  "home/p10k.zsh:.p10k.zsh"
 
   # --- terminal tools ---
   # bat, zoxide, fzf and eza have no config files of their own: their setup
