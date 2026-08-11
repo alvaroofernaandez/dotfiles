@@ -53,7 +53,7 @@ mouse-hide-while-typing = true
 # Attach to the shared tmux session, creating it only if absent. The tmux server
 # outlives Ghostty, so this costs ~970ms once after a reboot and ~9ms on every
 # window afterwards. Escape hatch: `ghostty -e zsh` for a plain shell.
-command = tmux new-session -A -s main
+command = /Users/alvaroofernaandez/.config/ghostty/launch.sh
 
 # --- Behavior ----------------------------------------------------------------
 copy-on-select = clipboard

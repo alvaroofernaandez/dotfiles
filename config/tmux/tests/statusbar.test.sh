@@ -99,6 +99,15 @@ assert_eq "leaves no separator dangling after the last segment" "yes" \
 assert_eq "keeps exactly one padding space at the end" "yes" \
   "$(printf '%s' "$plain" | rg -q '  $' && echo no || echo yes)"
 
+# --- locale independence -----------------------------------------------------
+# tmux inherits whatever environment launched the server. Under es_ES awk emits
+# a comma decimal separator and date emits Spanish month names of varying width.
+es_out="$(LANG=es_ES.UTF-8 LC_ALL=es_ES.UTF-8 bash "$SCRIPT" 2>/dev/null | sd '[0-9]' 'N')"
+c_out="$(LANG=C LC_ALL=C bash "$SCRIPT" 2>/dev/null | sd '[0-9]' 'N')"
+assert_eq "renders identically regardless of locale" "$c_out" "$es_out"
+assert_eq "uses a dot as decimal separator" "yes" \
+  "$(LANG=es_ES.UTF-8 bash "$SCRIPT" 2>/dev/null | rg -q 'RAM [0-9]+\.[0-9]' && echo yes || echo no)"
+
 # --- DESIGN.md §7: performance budget ----------------------------------------
 bash "$SCRIPT" >/dev/null 2>&1
 t0="$(now_ms)"; bash "$SCRIPT" >/dev/null 2>&1; t1="$(now_ms)"

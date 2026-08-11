@@ -14,6 +14,13 @@
 # usual implementations cost seconds per refresh.
 set -uo pipefail
 
+# Pinned so the row is identical wherever tmux was started from. Under a Spanish
+# locale awk formats decimals with a comma (RAM 8,5/16,0G) and date renders
+# months in Spanish with a trailing dot, whose width varies (ago. / sept.) and
+# breaks the fixed column budget. Presentation here must not depend on the
+# environment that happened to launch the server.
+export LC_ALL=C
+
 # DESIGN.md §2 — Kanagawa roles, one colour per metric.
 INK=235          # sumiInk   #1F1F28  — text on every segment
 C_CPU=110        # crystalBlue

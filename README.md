@@ -19,7 +19,7 @@ skills de terceros no se versionan. La lógica propia está cubierta por tests.
 ![Claude](https://img.shields.io/badge/Claude%20Code-D97757?logo=anthropic&logoColor=white&style=flat)
 
 ![visibilidad](https://img.shields.io/badge/visibilidad-privado-red?style=flat)
-![tests](https://img.shields.io/badge/tests-102%20passing-22c55e?style=flat)
+![tests](https://img.shields.io/badge/tests-116%20passing-22c55e?style=flat)
 ![enfoque](https://img.shields.io/badge/enfoque-TDD-22c55e?style=flat)
 
 <br/>
@@ -225,12 +225,13 @@ una conserva la suya.
 
 ```
 install                39 passed, 0 failed
+launch                 12 passed, 0 failed
 sidebar-toggle         12 passed, 0 failed
 open-in-work-pane      14 passed, 0 failed
 yazi-sidebar-config    10 passed, 0 failed
-statusbar              27 passed, 0 failed
+statusbar              29 passed, 0 failed
 
-102 passed, 0 failed
+116 passed, 0 failed
 ```
 
 Cada suite levanta su propio servidor de tmux aislado (`tmux -L`) y, en el caso de
