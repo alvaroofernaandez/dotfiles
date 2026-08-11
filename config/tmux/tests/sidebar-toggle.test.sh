@@ -117,6 +117,16 @@ assert_eq "the real sidebar command survives under minimal PATH" "2" "$(panes)"
 assert_eq "the sidebar pane is not dead" "0" \
   "$("${TMUX_TEST[@]}" list-panes -t main -F '#{pane_dead}' 2>/dev/null | rg -c '^1$' || echo 0)"
 
+# --- terminal passthrough for yazi -------------------------------------------
+# yazi sends DA1/DSR probes at startup to detect terminal features. With
+# allow-passthrough off, tmux blocks them, yazi waits for the timeout and prints
+# "Terminal response timeout" over the panel for several seconds before drawing.
+"${TMUX_TEST[@]}" kill-server 2>/dev/null
+"${TMUX_TEST[@]}" -f "$HOME/.tmux.conf" new-session -d 2>/dev/null
+sleep 1.5
+assert_eq "allow-passthrough is enabled for yazi's probes" "on" \
+  "$("${TMUX_TEST[@]}" show -gv allow-passthrough 2>/dev/null)"
+
 # --- failure reporting ------------------------------------------------------
 # A stale TMUX_PANE (e.g. inherited from another tmux server) must not be
 # swallowed: a keybind that silently does nothing is the worst outcome.

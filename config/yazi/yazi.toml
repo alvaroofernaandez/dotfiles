@@ -15,5 +15,5 @@ show_hidden = true
 
 [opener]
 edit = [
-  { run = '$HOME/.config/tmux/open-in-work-pane.sh %s', block = true, desc = "Edit in work pane", for = "unix" },
+  { run = '$HOME/.config/tmux/open-file.sh %s', block = true, desc = "Edit in new tab", for = "unix" },
 ]

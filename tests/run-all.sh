@@ -11,7 +11,7 @@ SUITES=(
   "$REPO/tests/install.test.sh"
   "$REPO/tests/launch.test.sh"
   "$REPO/config/tmux/tests/sidebar-toggle.test.sh"
-  "$REPO/config/tmux/tests/open-in-work-pane.test.sh"
+  "$REPO/config/tmux/tests/open-file.test.sh"
   "$REPO/config/tmux/tests/yazi-sidebar-config.test.sh"
   "$REPO/config/tmux/tests/statusbar.test.sh"
   "$REPO/config/tmux/tests/status-style.test.sh"

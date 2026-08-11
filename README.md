@@ -154,18 +154,13 @@ está cerrada.
 
 ### Apertura de archivos
 
-Al abrir un archivo desde la barra lateral, el editor **no** se lanza en el panel
-estrecho. El script decide según lo que esté corriendo en tu panel de trabajo:
+Al abrir un archivo desde la barra lateral, se crea una **ventana nueva** de tmux con
+`$EDITOR`. Nunca se toca la ventana en la que estabas: lo que tengas corriendo ahí —un
+build, un REPL, un editor con cambios sin guardar— sigue igual, sin recibir pulsaciones
+ni perder el foco. Al cerrar el editor, la ventana desaparece y vuelves donde estabas.
 
-| Estado del panel de trabajo | Comportamiento |
-| --- | --- |
-| Shell (`zsh`, `bash`, `fish`…) | Ejecuta `$EDITOR -- <archivos>` y le pasa el foco |
-| `nvim` o `vim` ya abierto | Lo reutiliza con `:edit` / `:badd`, sin anidar otro editor |
-| Cualquier otro proceso | Se niega y sale con error |
-| Fuera de tmux o sin panel destino | Abre `$EDITOR` en el sitio |
-
-Esa tercera fila es deliberada: si tienes un build o un REPL en marcha, enviar teclas a
-ciegas inyectaría texto dentro de ese proceso.
+Fuera de tmux, ejecuta `$EDITOR` en el sitio, así que `yazi` a pantalla completa sigue
+funcionando igual.
 
 ### Ajustes
 
@@ -237,7 +232,7 @@ una conserva la suya.
 install                39 passed, 0 failed
 launch                 12 passed, 0 failed
 sidebar-toggle         12 passed, 0 failed
-open-in-work-pane      14 passed, 0 failed
+open-file              13 passed, 0 failed
 yazi-sidebar-config    10 passed, 0 failed
 statusbar              29 passed, 0 failed
 status-style            7 passed, 0 failed
