@@ -120,6 +120,48 @@ elapsed=$((t1 - t0))
   && ok "runs in under ${BUDGET_MS}ms (took ${elapsed}ms)" \
   || ko "runs in under ${BUDGET_MS}ms" "< ${BUDGET_MS}ms" "${elapsed}ms"
 
+# --- concurrent bars share one computation -----------------------------------
+# CPU, GPU and RAM are system-wide: every tmux session shows the SAME numbers.
+# With eight sessions refreshing, computing them eight times is seven wasted
+# measurements. A short-lived cache makes the extra bars nearly free.
+cache_dir="$(mktemp -d)"
+export STATUSBAR_CACHE="$cache_dir/cache"
+
+# Measured as a saving against the uncached path, not against an absolute
+# figure: ~10ms of every run is just starting bash, which no cache can remove.
+# A fixed threshold would either be meaningless or fail on a slower machine.
+STATUSBAR_CACHE_TTL=0 bash "$SCRIPT" >/dev/null 2>&1
+t0="$(now_ms)"
+for _ in 1 2 3 4; do STATUSBAR_CACHE_TTL=0 bash "$SCRIPT" >/dev/null 2>&1; done
+t1="$(now_ms)"
+uncached=$((t1 - t0))
+
+bash "$SCRIPT" >/dev/null 2>&1          # primes the cache
+t0="$(now_ms)"
+for _ in 1 2 3 4; do bash "$SCRIPT" >/dev/null 2>&1; done
+t1="$(now_ms)"
+cached=$((t1 - t0))
+
+assert_eq "extra bars are cheaper with the shared cache" "yes" \
+  "$([ "$cached" -lt "$uncached" ] && echo yes || echo "no (${cached}ms vs ${uncached}ms)")"
+
+# The measured half must be genuinely skipped, not merely faster by noise.
+assert_eq "the cache removes at least a third of the cost" "yes" \
+  "$([ "$cached" -lt $(( uncached * 2 / 3 )) ] && echo yes || echo "no (${cached}ms vs ${uncached}ms)")"
+
+assert_eq "the cache file is created" "yes" \
+  "$([ -s "$cache_dir/cache" ] && echo yes || echo no)"
+
+# A stale cache must not freeze the clock.
+printf 'CACHE ANTIGUO\n' > "$cache_dir/cache"
+touch -t 202001010000 "$cache_dir/cache"
+fresh="$(bash "$SCRIPT" 2>/dev/null)"
+assert_eq "an expired cache is recomputed" "yes" \
+  "$(printf '%s' "$fresh" | rg -q 'CACHE ANTIGUO' && echo no || echo yes)"
+
+unset STATUSBAR_CACHE
+rm -rf "$cache_dir"
+
 # --- the expensive calls must stay gone --------------------------------------
 # Comments are stripped: these names appear legitimately in the rationale.
 code="$(rg -v '^\s*#' "$SCRIPT")"

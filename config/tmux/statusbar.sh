@@ -32,19 +32,48 @@ C_ALERT=167      # autumnRed — value over threshold, never chrome
 
 ALERT_PCT=85
 
+# CPU, GPU and RAM are system-wide: every tmux session renders the SAME numbers.
+# With several sessions open, computing them once per bar is pure waste, so the
+# measured part is cached briefly and shared. The clock is NOT cached — it is
+# free to produce and must not lag behind.
+CACHE="${STATUSBAR_CACHE:-${TMPDIR:-/tmp}/tmux-statusbar-$(id -u).cache}"
+CACHE_TTL="${STATUSBAR_CACHE_TTL:-4}"
+
+# One `date` call yields all three values it needs. bash 3.2 is what runs under
+# tmux's minimal PATH, so printf's %()T and EPOCHSECONDS are not available, and
+# each avoided process is ~3ms on a path that runs once per bar per refresh.
+now="$(date '+%s|%H:%M|%-d %b')"
+epoch="${now%%|*}"
+rest="${now#*|}"
+clock="${rest%%|*}"
+today="${rest#*|}"
+
+mtime="$(stat -f %m "$CACHE" 2>/dev/null || echo 0)"
+age=$(( epoch - mtime ))
+
+if [ -s "$CACHE" ] && [ "$age" -ge 0 ] && [ "$age" -lt "$CACHE_TTL" ]; then
+  # `read` is a builtin: no `cat` process. The cached half already carries its
+  # own colour markup; only clock and date are appended fresh, so the clock
+  # never lags behind the cache.
+  IFS= read -r cached < "$CACHE" || cached=""
+  if [ -n "$cached" ]; then
+    printf '%s#[fg=colour%d,bg=colour%d,bold] %s #[default] #[fg=colour%d,bg=colour%d,bold] %s #[default]\n' \
+      "$cached" "$INK" "$C_TIME" "$clock" "$INK" "$C_DATE" "$today"
+    exit 0
+  fi
+fi
+
 sysctl_out="$(sysctl -n vm.loadavg hw.logicalcpu hw.memsize 2>/dev/null)"
 vm_out="$(vm_stat 2>/dev/null)"
 # "Device Utilization %" is exposed unprivileged; absent on Intel Macs, in which
 # case the GPU segment reports 0 rather than breaking the row.
 gpu_util="$(ioreg -r -d 1 -w 0 -c AGXAccelerator 2>/dev/null \
   | rg -o '"Device Utilization %"=[0-9]+' | head -1 | rg -o '[0-9]+$')"
-clock="$(date '+%H:%M')"
-today="$(date '+%-d %b')"
 
 printf '%s\n---\n%s\n' "$sysctl_out" "$vm_out" | awk \
   -v ink="$INK" -v c_cpu="$C_CPU" -v c_gpu="$C_GPU" -v c_ram="$C_RAM" \
   -v c_time="$C_TIME" -v c_date="$C_DATE" -v c_alert="$C_ALERT" \
-  -v alert="$ALERT_PCT" -v gpu="${gpu_util:-0}" -v clock="$clock" -v today="$today" '
+  -v alert="$ALERT_PCT" -v cache_file="$CACHE" -v gpu="${gpu_util:-0}" -v clock="$clock" -v today="$today" '
   BEGIN { section = 0; page = 4096; load = 0; ncpu = 1; total = 0 }
 
   /^---$/ { section = 1; next }
@@ -74,11 +103,13 @@ printf '%s\n---\n%s\n' "$sysctl_out" "$vm_out" | awk \
     if (used > tot) used = tot
     ram_pct = tot > 0 ? used / tot * 100 : 0
 
-    row = seg(c_cpu,  sprintf("CPU %d%%", cpu + 0.5), cpu) \
-          seg(c_gpu,  sprintf("GPU %d%%", gpu),       gpu) \
-          seg(c_ram,  sprintf("RAM %.1f/%.1fG", used, tot), ram_pct) \
-          seg(c_time, clock, 0) \
-          seg(c_date, today, 0)
+    metrics = seg(c_cpu, sprintf("CPU %d%%", cpu + 0.5), cpu) \
+              seg(c_gpu, sprintf("GPU %d%%", gpu),       gpu) \
+              seg(c_ram, sprintf("RAM %.1f/%.1fG", used, tot), ram_pct)
+    print metrics > cache_file
+    close(cache_file)
+
+    row = metrics seg(c_time, clock, 0) seg(c_date, today, 0)
     sub(/ $/, "", row)   # the row ends at the last segment, no trailing gap
     printf "%s\n", row
   }

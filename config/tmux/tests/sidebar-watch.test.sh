@@ -87,6 +87,35 @@ sleep 2
 assert_eq "emits nothing while the directory is unchanged" "no" \
   "$([ -s "$CALLS" ] && echo yes || echo no)"
 
+# --- one tmux call per cycle -------------------------------------------------
+# Each tmux invocation costs ~9ms because it starts a client. With 8 sessions
+# open, three calls per cycle every 2s is 15.6% of a core spent doing nothing
+# but asking the same question three ways.
+COUNTER="$WORKDIR/tmux-calls.txt"
+cat > "$WORKDIR/bin/tmux-counted" <<EOF
+#!/usr/bin/env bash
+echo x >> "$COUNTER"
+exec $(command -v tmux) "\$@"
+EOF
+chmod +x "$WORKDIR/bin/tmux-counted"
+
+"${TMUX_TEST[@]}" kill-server 2>/dev/null
+"${TMUX_TEST[@]}" new-session -d -s main -c "$WORKDIR/a" -x 200 -y 50
+sleep 0.4
+wp="$("${TMUX_TEST[@]}" list-panes -t main -F '#{pane_id}')"
+sbp="$("${TMUX_TEST[@]}" split-window -t main -h -b -P -F '#{pane_id}' "sleep 600")"
+"${TMUX_TEST[@]}" set -p -t "$sbp" @sidebar 1
+sleep 0.3
+
+rm -f "$COUNTER"
+# One iteration only: interval long enough that the loop is killed mid-sleep.
+TMUX_SOCKET="$SOCKET" TMUX_BIN="$WORKDIR/bin/tmux-counted" YA_BIN="$WORKDIR/bin/ya" \
+  WATCH_INTERVAL=30 timeout 3 bash "$WATCH" "$sbp" 4242 >/dev/null 2>&1
+calls="$(wc -l < "$COUNTER" 2>/dev/null | tr -d ' ')"
+
+assert_eq "one tmux call per cycle, not three" "yes" \
+  "$([ "${calls:-99}" -le 1 ] && echo yes || echo "no (${calls})")"
+
 # --- it dies with the sidebar ------------------------------------------------
 # An orphaned polling loop would keep waking up forever after the panel closed.
 SIDEBAR_CMD="$WORKDIR/bin/yazi" YA_BIN="$WORKDIR/bin/ya" \

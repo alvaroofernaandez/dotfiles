@@ -41,15 +41,23 @@ fi
 last=""
 
 while true; do
-  # Gone means gone: the sidebar pane closed, the option was cleared, or the
-  # whole server died. Any of those ends the loop.
-  tmux_cmd has-session 2>/dev/null || exit 0
-  tmux_cmd display -p -t "$pane" '#{pane_id}' >/dev/null 2>&1 || exit 0
-  [ "$(tmux_cmd display -p -t "$pane" '#{?@sidebar,1,0}' 2>/dev/null)" = "1" ] || exit 0
+  # ONE tmux call per cycle. Each invocation starts a client and costs ~9ms, so
+  # with eight sessions open the earlier three-call version burned 15.6% of a
+  # core asking the same question three ways. This single listing answers all of
+  # them: a failure means the server or window is gone, an absent sidebar row
+  # means the panel closed, and the remaining row carries the work directory.
+  info="$(tmux_cmd list-panes -t "$pane" \
+    -F '#{pane_id}|#{?@sidebar,1,0}|#{pane_current_path}' 2>/dev/null)" || exit 0
+  [ -n "$info" ] || exit 0
+
+  # Our sidebar must still be there and still be tagged.
+  case "$info" in
+    *"$pane|1|"*) ;;
+    *) exit 0 ;;
+  esac
 
   # The work pane is the one in this window that is not the sidebar.
-  work="$(tmux_cmd list-panes -t "$pane" -F '#{pane_id}|#{?@sidebar,1,0}|#{pane_current_path}' 2>/dev/null \
-    | awk -F'|' '$2 != "1" { print $3; exit }')"
+  work="$(printf '%s\n' "$info" | awk -F'|' '$2 != "1" { print $3; exit }')"
 
   if [ -n "$work" ] && [ "$work" != "$last" ]; then
     # Skipped on the first pass: the sidebar already opened in that directory,
