@@ -51,4 +51,9 @@ done
 # Named after the first file, so the window list stays readable.
 name="$(basename -- "$1")"
 
-tmux_cmd new-window -n "$name" "$(printf '%q' "$EDITOR_BIN")$quoted"
+win="$(tmux_cmd new-window -P -F '#{window_id}' -n "$name" \
+  "$(printf '%q' "$EDITOR_BIN")$quoted")"
+
+# Tagged so close-file.sh can tell an opened file from a window you were working
+# in. Guessing by window name or contents would eventually close real work.
+tmux_cmd set -w -t "$win" @file_window 1

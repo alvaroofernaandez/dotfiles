@@ -19,7 +19,7 @@ skills de terceros no se versionan. La lógica propia está cubierta por tests.
 ![Claude](https://img.shields.io/badge/Claude%20Code-D97757?logo=anthropic&logoColor=white&style=flat)
 
 ![visibilidad](https://img.shields.io/badge/visibilidad-privado-red?style=flat)
-![tests](https://img.shields.io/badge/tests-145%20passing-22c55e?style=flat)
+![tests](https://img.shields.io/badge/tests-156%20passing-22c55e?style=flat)
 ![enfoque](https://img.shields.io/badge/enfoque-TDD-22c55e?style=flat)
 
 <br/>
@@ -159,6 +159,12 @@ Al abrir un archivo desde la barra lateral, se crea una **ventana nueva** de tmu
 build, un REPL, un editor con cambios sin guardar— sigue igual, sin recibir pulsaciones
 ni perder el foco. Al cerrar el editor, la ventana desaparece y vuelves donde estabas.
 
+Para cerrarlo, `Alt+w` o `prefix` + `k`, sin escribir el comando de salida del editor.
+Solo cierra ventanas abiertas desde la barra lateral: si lo pulsas en una ventana de
+trabajo, se niega y te lo dice. Y a un editor de la familia vim le **pide** salir con
+`:q` en vez de matarlo, así que si tienes cambios sin guardar decide el editor, no el
+atajo.
+
 Fuera de tmux, ejecuta `$EDITOR` en el sitio, así que `yazi` a pantalla completa sigue
 funcionando igual.
 
@@ -233,13 +239,14 @@ install                39 passed, 0 failed
 launch                 12 passed, 0 failed
 sidebar-toggle         12 passed, 0 failed
 open-file              13 passed, 0 failed
+close-file              8 passed, 0 failed
 yazi-sidebar-config    10 passed, 0 failed
 statusbar              29 passed, 0 failed
 status-style            7 passed, 0 failed
-keybindings             7 passed, 0 failed
+keybindings            10 passed, 0 failed
 sidebar-button         10 passed, 0 failed
 
-145 passed, 0 failed
+156 passed, 0 failed
 ```
 
 Cada suite levanta su propio servidor de tmux aislado (`tmux -L`) y, en el caso de

@@ -63,5 +63,13 @@ assert_eq "all three routes run the same toggle" "3" \
 assert_eq "the mouse route exists as a keyboard-independent fallback" "yes" \
   "$(printf '%s' "$root_keys" | rg -q 'MouseDown1Status.*sidebar-toggle' && echo yes || echo no)"
 
+# --- closing an opened file --------------------------------------------------
+assert_eq "a single-press key closes an opened file" "yes" \
+  "$(printf '%s' "$root_keys" | rg -q 'M-w\s+run-shell.*close-file' && echo yes || echo no)"
+assert_eq "prefix+k closes an opened file without Option" "yes" \
+  "$(printf '%s' "$prefix_keys" | rg -q 'bind-key\s+-T prefix\s+k\b.*close-file' && echo yes || echo no)"
+assert_eq "the close key is not a Spanish-ISO dead key" "yes" \
+  "$(printf '%s' "$root_keys" | rg -q 'M-[eiun]\s+run-shell.*close-file' && echo no || echo yes)"
+
 printf '\n%d passed, %d failed\n' "$pass" "$fail"
 [ "$fail" -eq 0 ]
