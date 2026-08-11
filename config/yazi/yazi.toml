@@ -1,0 +1,19 @@
+# Route file opening through the tmux work pane instead of the narrow sidebar.
+#
+# The helper falls back to running $EDITOR in place whenever it cannot delegate
+# (outside tmux, or when yazi is the only pane), so plain fullscreen `yazi`
+# keeps working exactly as before.
+#
+# block = true is required for that fallback path: the editor needs the screen.
+# When the helper does delegate it exits immediately, so the handover is a
+# single frame rather than a visible flash.
+
+[mgr]
+# Dotfiles are hidden by default, which would make .env — a primary reason this
+# sidebar exists — invisible. Toggle per-session with `.` if it gets noisy.
+show_hidden = true
+
+[opener]
+edit = [
+  { run = '$HOME/.config/tmux/open-in-work-pane.sh %s', block = true, desc = "Edit in work pane", for = "unix" },
+]

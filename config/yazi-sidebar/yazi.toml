@@ -1,0 +1,23 @@
+# yazi config used ONLY by the tmux sidebar (see ~/.config/tmux/sidebar-toggle.sh).
+#
+# At ~60 columns yazi's default three-column layout strangles every filename
+# into "c…", so the sidebar drops the parent and preview columns and spends the
+# full width on the tree. Previewing is not lost — opening a file hands it to
+# the work pane, which has the room to actually read it.
+#
+# yazi does NOT merge this directory with ~/.config/yazi: it replaces it. The
+# opener and show_hidden below are therefore duplicated on purpose, and
+# tests/yazi-sidebar-config.test.sh fails if they ever drift apart.
+
+[mgr]
+# [parent, current, preview] — 0 hides a column; at least one must be non-zero.
+ratio = [0, 1, 0]
+
+# Dotfiles are hidden by default, which would make .env — a primary reason this
+# sidebar exists — invisible. Toggle per-session with `.` if it gets noisy.
+show_hidden = true
+
+[opener]
+edit = [
+  { run = '$HOME/.config/tmux/open-in-work-pane.sh %s', block = true, desc = "Edit in work pane", for = "unix" },
+]

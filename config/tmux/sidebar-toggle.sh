@@ -1,0 +1,50 @@
+#!/usr/bin/env bash
+# Toggle a file-tree sidebar pane in the current tmux window.
+#
+# Open  -> splits a narrow pane on the left running $SIDEBAR_CMD (default: yazi),
+#          inheriting the working pane's directory, and focuses it.
+# Close -> kills that pane and returns focus to the working pane.
+#
+# The pane is tagged with the @sidebar pane option, so the toggle never has to
+# guess which pane is the sidebar and never touches a pane the user opened.
+set -euo pipefail
+
+SIDEBAR_CMD="${SIDEBAR_CMD:-yazi}"
+SIDEBAR_WIDTH="${SIDEBAR_WIDTH:-30%}"
+SIDEBAR_CONFIG_HOME="${SIDEBAR_CONFIG_HOME:-$HOME/.config/yazi-sidebar}"
+
+# TMUX_SOCKET lets the test suite drive an isolated server.
+if [ -n "${TMUX_SOCKET:-}" ]; then
+  tmux() { command tmux -L "$TMUX_SOCKET" "$@"; }
+fi
+
+# Anchor every lookup to the window the toggle was fired from, so other
+# windows and sessions are never considered.
+window="${TMUX_PANE:-$(tmux display -p '#{window_id}')}"
+
+# TMUX_PANE can be stale when inherited from another tmux server. Acting on a
+# fallback target would open the sidebar in the wrong window, so refuse loudly
+# instead: a keybind that silently does nothing is impossible to diagnose.
+if ! tmux display -p -t "$window" '#{window_id}' >/dev/null 2>&1; then
+  echo "sidebar-toggle: no such pane or window: $window" >&2
+  exit 1
+fi
+
+# @sidebar is normalised to 1/0 rather than read raw: an unset option renders
+# as an empty field, and whitespace-splitting silently shifts later columns.
+sidebar="$(tmux list-panes -t "$window" -F '#{pane_id}|#{?@sidebar,1,0}' \
+  | awk -F'|' '$2 == "1" { print $1; exit }')"
+
+if [ -n "$sidebar" ]; then
+  tmux kill-pane -t "$sidebar"
+else
+  # Point yazi at the sidebar-only config (narrow, tree-only layout). Skipped
+  # when that directory is absent: yazi would silently fall back to its built-in
+  # defaults and lose the opener, so plain ~/.config/yazi is the safer choice.
+  env_args=()
+  [ -d "$SIDEBAR_CONFIG_HOME" ] && env_args=(-e "YAZI_CONFIG_HOME=$SIDEBAR_CONFIG_HOME")
+
+  pane="$(tmux split-window -t "$window" -h -b -l "$SIDEBAR_WIDTH" \
+    -c '#{pane_current_path}' "${env_args[@]}" -P -F '#{pane_id}' "$SIDEBAR_CMD")"
+  tmux set -p -t "$pane" @sidebar 1
+fi

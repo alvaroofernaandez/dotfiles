@@ -1,0 +1,77 @@
+# =============================================================================
+# Ghostty — Tokyo Night
+# Docs: ghostty +show-config --default --docs
+# Reload: cmd+shift+, (or restart)
+# =============================================================================
+
+# --- Theme -------------------------------------------------------------------
+# Follows the macOS appearance automatically.
+# Dark variants: TokyoNight, TokyoNight Night, TokyoNight Storm, TokyoNight Moon
+# Light variant: TokyoNight Day
+theme = dark:TokyoNight Night,light:TokyoNight Day
+
+# Do NOT hardcode cursor-color / selection-* here: each TokyoNight variant
+# already ships its own, and a fixed value would break one of the two modes.
+unfocused-split-opacity = 0.82
+
+# --- Typography --------------------------------------------------------------
+font-family = JetBrainsMono Nerd Font Mono
+font-size = 14
+font-thicken = true
+
+# Vertical breathing room between lines
+adjust-cell-height = 14%
+
+# Disable ligatures if you dislike them:
+# font-feature = -calt
+# font-feature = -liga
+
+# --- Window ------------------------------------------------------------------
+window-padding-x = 16
+window-padding-y = 12
+window-padding-balance = true
+window-theme = ghostty
+window-save-state = always
+window-inherit-working-directory = true
+
+# `tabs` looks nicer but has a known Ghostty bug: its titlebar style does not
+# update when the system switches light/dark. `transparent` follows the theme.
+macos-titlebar-style = transparent
+macos-option-as-alt = true
+macos-window-shadow = true
+
+# Translucent background with blur
+background-opacity = 0.94
+background-blur = 24
+
+# --- Cursor ------------------------------------------------------------------
+cursor-style = block
+cursor-style-blink = false
+mouse-hide-while-typing = true
+
+# --- Behavior ----------------------------------------------------------------
+copy-on-select = clipboard
+confirm-close-surface = false
+scrollback-limit = 100000
+shell-integration = zsh
+shell-integration-features = cursor,sudo,title
+clipboard-read = allow
+clipboard-write = allow
+
+# --- Keybindings -------------------------------------------------------------
+keybind = cmd+d=new_split:right
+keybind = cmd+shift+d=new_split:down
+keybind = cmd+w=close_surface
+keybind = cmd+alt+left=goto_split:left
+keybind = cmd+alt+right=goto_split:right
+keybind = cmd+alt+up=goto_split:up
+keybind = cmd+alt+down=goto_split:down
+keybind = cmd+shift+enter=toggle_split_zoom
+keybind = cmd+k=clear_screen
+keybind = cmd+shift+r=reload_config
+
+# Drop-down terminal from anywhere (needs Accessibility permission on macOS)
+keybind = global:cmd+grave_accent=toggle_quick_terminal
+
+quick-terminal-position = top
+quick-terminal-animation-duration = 0.12
