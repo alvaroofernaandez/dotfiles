@@ -22,6 +22,7 @@ SUITES=(
   "$REPO/config/tmux/tests/sidebar-button.test.sh"
   "$REPO/config/tmux/tests/close-file.test.sh"
   "$REPO/config/tmux/tests/sidebar-follow.test.sh"
+  "$REPO/config/tmux/tests/sidebar-watch.test.sh"
 )
 
 total_pass=0

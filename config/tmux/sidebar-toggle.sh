@@ -96,6 +96,27 @@ else
   pane="$(tmux split-window -t "$window" -h -b -l "$SIDEBAR_WIDTH" \
     -c '#{pane_current_path}' "${env_args[@]}" -P -F '#{pane_id}' "$launch")"
 
-  [ -n "$client_id" ] && tmux set -w -t "$pane" @sidebar_client_id "$client_id"
+  if [ -n "$client_id" ]; then
+    tmux set -w -t "$pane" @sidebar_client_id "$client_id"
+
+  fi
   tmux set -p -t "$pane" @sidebar 1
+
+  # Started only after @sidebar is set: the watcher checks that tag on its first
+  # iteration and exits at once if it is missing, so launching it any earlier
+  # means it dies immediately.
+  if [ -n "$client_id" ]; then
+    # Safety net for shells that predate the chpwd hook, or are not zsh. It
+    # exits on its own as soon as this sidebar is gone.
+    watcher="$(cd "$(dirname "$0")" && pwd)/sidebar-watch.sh"
+    if [ -x "$watcher" ]; then
+      # stdin is closed and the job disowned as well as redirecting output: a
+      # background child that keeps the parent's descriptors blocks whoever
+      # reads them, which hangs run-shell and any pipeline around the toggle.
+      TMUX_SOCKET="${TMUX_SOCKET:-}" TMUX_BIN="$TMUX_BIN" \
+        YA_BIN="${YA_BIN:-}" WATCH_INTERVAL="${WATCH_INTERVAL:-2}" \
+        nohup "$watcher" "$pane" "$client_id" </dev/null >/dev/null 2>&1 &
+      disown 2>/dev/null || true
+    fi
+  fi
 fi
