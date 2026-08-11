@@ -24,8 +24,15 @@ fresh_home() {
 
 run_install() { HOME="$SANDBOX" bash "$INSTALL" "$@" 2>&1; }
 
-# Count backup directories/files left behind anywhere in the sandbox.
-count_backups() { find "$SANDBOX" -maxdepth 3 -name '*.bak.*' 2>/dev/null | wc -l | tr -d ' '; }
+# Backups live in a quarantine directory, never beside the original.
+BACKUP_ROOT_NAME=".dotfiles-backup"
+count_backups() {
+  [ -d "$SANDBOX/$BACKUP_ROOT_NAME" ] || { echo 0; return; }
+  find "$SANDBOX/$BACKUP_ROOT_NAME" -mindepth 2 -maxdepth 4 \( -type f -o -type d \) 2>/dev/null \
+    | rg -v "^$SANDBOX/$BACKUP_ROOT_NAME/[^/]+$" | head -100 | wc -l | tr -d ' '
+}
+# Path of a backed-up item, whatever timestamp it got.
+backup_of() { find "$SANDBOX/$BACKUP_ROOT_NAME" -maxdepth 3 -path "*/$1" 2>/dev/null | head -1; }
 
 echo "install"
 
@@ -58,15 +65,20 @@ run_install >/dev/null
 
 assert_eq "replaces the existing directory with the link" \
   "$REPO/config/tmux" "$(readlink "$SANDBOX/.config/tmux")"
-backup_dir="$(find "$SANDBOX/.config" -maxdepth 1 -name 'tmux.bak.*' | head -1)"
+
+backup_dir="$(backup_of '.config/tmux')"
 assert_eq "backs up the previous directory" "yes" \
   "$([ -n "$backup_dir" ] && echo yes || echo no)"
 assert_eq "backup keeps the original contents intact" \
   "MINE" "$(cat "$backup_dir/precious.conf" 2>/dev/null)"
-
-backup_file="$(find "$SANDBOX" -maxdepth 1 -name '.tmux.conf.bak.*' | head -1)"
 assert_eq "backs up an existing regular file" \
-  "MY TMUX" "$(cat "$backup_file" 2>/dev/null)"
+  "MY TMUX" "$(cat "$(backup_of '.tmux.conf')" 2>/dev/null)"
+
+# Backups must never land inside a directory the tools scan: Claude Code reads
+# every entry under ~/.claude/skills, so a "skills/ship.bak.<stamp>" would be
+# loaded as a second, duplicate skill.
+assert_eq "quarantines backups outside the destination tree" "0" \
+  "$(find "$SANDBOX/.config" "$SANDBOX/.claude" "$SANDBOX/.opencode" -name '*.bak.*' 2>/dev/null | wc -l | tr -d ' ')"
 
 # --- idempotency -------------------------------------------------------------
 fresh_home
@@ -100,23 +112,45 @@ assert_eq "dry-run still reports what it would do" "yes" \
 # ~/.claude holds credentials and gigabytes of session history alongside the
 # configs worth versioning, so only individual subpaths may be linked.
 fresh_home
-mkdir -p "$SANDBOX/.claude/projects"
+mkdir -p "$SANDBOX/.claude/projects" "$SANDBOX/.claude/skills/some-vendor-skill"
 printf 'SECRET\n' > "$SANDBOX/.claude/.credentials.json"
 printf 'log\n' > "$SANDBOX/.claude/projects/session.jsonl"
+printf 'vendor\n' > "$SANDBOX/.claude/skills/some-vendor-skill/SKILL.md"
+
+# Pre-seed an own skill as a real directory: this is the case that produced the
+# duplicate-skill bug, since it forces a backup right inside the scanned dir.
+preseeded="$(basename "$(find "$REPO/shared/skills" -maxdepth 1 -mindepth 1 -type d | head -1)")"
+mkdir -p "$SANDBOX/.claude/skills/$preseeded"
+printf 'old copy\n' > "$SANDBOX/.claude/skills/$preseeded/SKILL.md"
+
 run_install >/dev/null
 
-# Skills are tool-agnostic and live once in shared/, linked into every agent.
-# Commands and agents are NOT: OpenCode's carry their own frontmatter
-# (agent:, subtask:) and tool-specific paths, so each keeps its own copy.
-assert_eq "links ~/.claude/skills to the shared source" \
-  "$REPO/shared/skills" "$(readlink "$SANDBOX/.claude/skills")"
-assert_eq "links ~/.config/opencode/skills to the shared source" \
-  "$REPO/shared/skills" "$(readlink "$SANDBOX/.config/opencode/skills")"
-assert_eq "links ~/.opencode/skills to the shared source" \
-  "$REPO/shared/skills" "$(readlink "$SANDBOX/.opencode/skills")"
-assert_eq "every agent resolves skills to one single source" "1" \
-  "$(for p in .claude/skills .config/opencode/skills .opencode/skills; do
-       readlink "$SANDBOX/$p"; done | sort -u | wc -l | tr -d ' ')"
+# Skills are linked ONE BY ONE, never as a directory. The skills directories
+# also hold marketplace skills that this repo does not version; replacing the
+# directory with a link would take all of them out of service.
+first_skill="$(basename "$(find "$REPO/shared/skills" -maxdepth 1 -mindepth 1 -type d | head -1)")"
+
+assert_eq "links each own skill into ~/.claude/skills" \
+  "$REPO/shared/skills/$first_skill" "$(readlink "$SANDBOX/.claude/skills/$first_skill")"
+assert_eq "links each own skill into ~/.config/opencode/skills" \
+  "$REPO/shared/skills/$first_skill" "$(readlink "$SANDBOX/.config/opencode/skills/$first_skill")"
+assert_eq "links each own skill into ~/.opencode/skills" \
+  "$REPO/shared/skills/$first_skill" "$(readlink "$SANDBOX/.opencode/skills/$first_skill")"
+
+assert_eq "links every own skill, not just one" "yes" \
+  "$([ "$(find "$SANDBOX/.claude/skills" -maxdepth 1 -type l | wc -l | tr -d ' ')" \
+      -eq "$(find "$REPO/shared/skills" -maxdepth 1 -mindepth 1 -type d | wc -l | tr -d ' ')" ] && echo yes || echo no)"
+
+assert_eq "never replaces the skills directory itself" "real directory" \
+  "$([ -L "$SANDBOX/.claude/skills" ] && echo symlink || echo "real directory")"
+
+# Regression: a backup left here would be loaded as a duplicate skill.
+assert_eq "no backup pollutes the skills directory" "0" \
+  "$(find "$SANDBOX/.claude/skills" -maxdepth 1 -name '*.bak.*' 2>/dev/null | wc -l | tr -d ' ')"
+
+# The whole point: marketplace skills must keep working after install.
+assert_eq "leaves third-party skills untouched" \
+  "vendor" "$(cat "$SANDBOX/.claude/skills/some-vendor-skill/SKILL.md" 2>/dev/null)"
 
 assert_eq "keeps tool-specific commands separate" "yes" \
   "$([ "$(readlink "$SANDBOX/.claude/commands")" != "$(readlink "$SANDBOX/.config/opencode/commands")" ] && echo yes || echo no)"

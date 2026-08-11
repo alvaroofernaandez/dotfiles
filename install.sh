@@ -34,15 +34,6 @@ LINKS=(
   "config/ghostty:.config/ghostty"
   "home/tmux.conf:.tmux.conf"
 
-  # --- skills: tool-agnostic, one source linked into every agent ---
-  #
-  # Commands and agents are deliberately NOT shared: OpenCode's carry their own
-  # frontmatter (agent:, subtask:) and point at tool-specific paths, so each
-  # tool keeps its own copy below.
-  "shared/skills:.claude/skills"
-  "shared/skills:.config/opencode/skills"
-  "shared/skills:.opencode/skills"
-
   # --- claude code ---
   "config/claude/CLAUDE.md:.claude/CLAUDE.md"
   "config/claude/RTK.md:.claude/RTK.md"
@@ -66,7 +57,32 @@ LINKS=(
   "config/opencode/prompts:.config/opencode/prompts"
 )
 
+# Skills are tool-agnostic, so each one is linked into every agent's skills
+# directory — but ONE BY ONE, never by linking the directory itself. Those
+# directories also hold marketplace skills this repo does not version, and
+# replacing a directory with a link would take all of them out of service.
+#
+# Commands and agents are deliberately not shared this way: OpenCode's carry
+# their own frontmatter (agent:, subtask:) and tool-specific paths, so each tool
+# keeps its own copy above.
+SKILL_DIRS=(".claude/skills" ".config/opencode/skills" ".opencode/skills")
+
+for skill_path in "$REPO_ROOT"/shared/skills/*/; do
+  [ -d "$skill_path" ] || continue
+  skill="$(basename "$skill_path")"
+  for skill_dir in "${SKILL_DIRS[@]}"; do
+    LINKS+=("shared/skills/$skill:$skill_dir/$skill")
+  done
+done
+
 stamp="$(date +%Y%m%d%H%M%S)"
+
+# Backups are quarantined here rather than left beside the original. Tools scan
+# their config directories wholesale — Claude Code loads every entry under
+# ~/.claude/skills — so a "ship.bak.<stamp>" sitting next to "ship" would be
+# picked up as a second, duplicate skill.
+BACKUP_ROOT="$HOME/.dotfiles-backup/$stamp"
+
 failed=0
 
 say() { printf '  %-24s %s\n' "$1" "$2"; }
@@ -101,8 +117,10 @@ for entry in "${LINKS[@]}"; do
 
   # -e is false for a broken symlink, so test -L too or it would survive.
   if [ -e "$dest" ] || [ -L "$dest" ]; then
-    mv "$dest" "$dest.bak.$stamp"
-    say "$name" "backed up -> $(basename "$dest").bak.$stamp"
+    backup="$BACKUP_ROOT/$name"
+    mkdir -p "$(dirname "$backup")"
+    mv "$dest" "$backup"
+    say "$name" "backed up -> ~/.dotfiles-backup/$stamp/$name"
   fi
 
   ln -s "$src" "$dest"
