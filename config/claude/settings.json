@@ -149,7 +149,7 @@
   "autoUpdatesChannel": "latest",
   "tui": "fullscreen",
   "skipDangerousModePermissionPrompt": true,
-  "theme": "dark",
+  "theme": "custom:soft-dark",
   "skipAutoPermissionPrompt": true,
   "effort": "medium"
 }

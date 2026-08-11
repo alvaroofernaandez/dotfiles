@@ -548,6 +548,7 @@ distintos. Son la **capa de adaptación** entre cada herramienta y las skills co
 | `claude/sdd-orchestrator.md` | Reglas de orquestación y delegación para SDD |
 | `claude/settings.json` | Permisos, hooks, plugins y marketplaces |
 | `claude/agents/`, `commands/`, `hooks/`, `prompts/` | Subagentes, comandos y hooks |
+| `claude/themes/` | Temas de color propios, referenciados como `custom:<fichero>` |
 | `opencode/opencode.json`, `AGENTS.md` | Configuración e instrucciones globales |
 | `opencode/agents/`, `plugin/`, `profiles/` | Adaptadores y extensiones |
 

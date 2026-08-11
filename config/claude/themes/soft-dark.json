@@ -1,0 +1,12 @@
+{
+  "name": "Soft Dark",
+  "base": "dark",
+  "overrides": {
+    "diffAdded": "#1b3326",
+    "diffRemoved": "#40232a",
+    "diffAddedDimmed": "#25302a",
+    "diffRemovedDimmed": "#32272b",
+    "diffAddedWord": "#2f6b45",
+    "diffRemovedWord": "#7a3a46"
+  }
+}

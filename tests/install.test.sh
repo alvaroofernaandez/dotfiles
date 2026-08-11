@@ -50,6 +50,8 @@ assert_eq "links ~/.config/ghostty to the repo" \
   "$REPO/config/ghostty" "$(readlink "$SANDBOX/.config/ghostty")"
 assert_eq "links ~/.tmux.conf to the repo" \
   "$REPO/home/tmux.conf" "$(readlink "$SANDBOX/.tmux.conf")"
+assert_eq "links ~/.claude/themes to the repo" \
+  "$REPO/config/claude/themes" "$(readlink "$SANDBOX/.claude/themes")"
 assert_eq "creates no backups on a clean machine" "0" "$(count_backups)"
 
 # The link must actually resolve to readable content, not just exist.

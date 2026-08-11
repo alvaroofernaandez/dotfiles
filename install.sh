@@ -55,6 +55,7 @@ LINKS=(
   "config/claude/commands:.claude/commands"
   "config/claude/hooks:.claude/hooks"
   "config/claude/prompts:.claude/prompts"
+  "config/claude/themes:.claude/themes"
 
   # --- opencode ---
   "config/opencode/opencode.json:.config/opencode/opencode.json"
