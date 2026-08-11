@@ -14,6 +14,7 @@ SUITES=(
   "$REPO/config/tmux/tests/open-in-work-pane.test.sh"
   "$REPO/config/tmux/tests/yazi-sidebar-config.test.sh"
   "$REPO/config/tmux/tests/statusbar.test.sh"
+  "$REPO/config/tmux/tests/status-style.test.sh"
 )
 
 total_pass=0

@@ -39,6 +39,12 @@ The theme is the source of truth. No invented palette.
 on saturated mid-tones is where terminal bars usually fail contrast. All ratios
 above are computed against `#1F1F28` and clear 4.5:1.
 
+**Rule: the bar itself has no background.** `status-style bg=default` inherits
+the terminal's own background, so Ghostty's `background-opacity` and blur show
+through. The coloured blocks are the only painted surface; everything else is
+the terminal. Bar text is `fujiWhite` (223), active window `springGreen` (108),
+inactive windows muted grey (245).
+
 Threshold colouring is reserved for *values*, never for chrome: a metric turns
 `autumnRed` only when it actually crosses its alert threshold.
 
@@ -101,6 +107,8 @@ design. There is nothing here to ease.
 - **Duplicated metrics** — two sources rendering CPU is how they drift apart.
 - **Emoji or Nerd Font icons as labels** — inconsistent widths misalign the row.
 - **Colour as the only signal** — always paired with a label and a value.
+- **An opaque band behind the bar** — it would cover the terminal's own
+  background and defeat its transparency and blur.
 
 ## 8. Decision Log
 
@@ -113,6 +121,16 @@ theme instead of introducing a second palette.
 `powermetrics` requires superuser and cannot run from a status hook.
 `ioreg -r -d 1 -w 0 -c AGXAccelerator` exposes `Device Utilization %`
 unprivileged in ~20ms.
+
+### 2026-08-11 — Transparent bar (`status-style bg=default`)
+The bar was rendering on a green band. That green is *tmux's own default*
+(`bg=green,fg=black`); the kanagawa theme never assigns `status-style`, so
+nothing was overriding it. Set to `bg=default` so the bar inherits the
+terminal background and Ghostty's opacity and blur survive.
+
+Related finding, not acted on: kanagawa emits its `status-left` with empty
+colour fields (`#[fg=]`, `#[bg=]`), so its theme is not resolving. The window
+list is styled explicitly here instead of relying on it.
 
 ### 2026-08-11 — CPU from load average, not sampled utilisation
 Sampling utilisation needs two readings separated by a sleep. That is exactly

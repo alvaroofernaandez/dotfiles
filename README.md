@@ -19,7 +19,7 @@ skills de terceros no se versionan. La lógica propia está cubierta por tests.
 ![Claude](https://img.shields.io/badge/Claude%20Code-D97757?logo=anthropic&logoColor=white&style=flat)
 
 ![visibilidad](https://img.shields.io/badge/visibilidad-privado-red?style=flat)
-![tests](https://img.shields.io/badge/tests-116%20passing-22c55e?style=flat)
+![tests](https://img.shields.io/badge/tests-123%20passing-22c55e?style=flat)
 ![enfoque](https://img.shields.io/badge/enfoque-TDD-22c55e?style=flat)
 
 <br/>
@@ -128,6 +128,10 @@ superusuario y no puede ejecutarse desde un hook de estado. La CPU sale del load
 muestrear utilización real exige dos lecturas separadas por un `sleep`, que es lo que
 hacía que la versión anterior costase segundos.
 
+La barra no tiene fondo propio: `status-style bg=default` hereda el del terminal, así que
+la transparencia y el desenfoque de Ghostty se mantienen. Los bloques de color son la
+única superficie pintada.
+
 Sin glifos de Nerd Font: solo ASCII, así que la fila no se rompe en un terminal sin
 tipografía parcheada. Las reglas completas están en [`.agents/DESIGN.md`](.agents/DESIGN.md).
 
@@ -230,8 +234,9 @@ sidebar-toggle         12 passed, 0 failed
 open-in-work-pane      14 passed, 0 failed
 yazi-sidebar-config    10 passed, 0 failed
 statusbar              29 passed, 0 failed
+status-style            7 passed, 0 failed
 
-116 passed, 0 failed
+123 passed, 0 failed
 ```
 
 Cada suite levanta su propio servidor de tmux aislado (`tmux -L`) y, en el caso de
