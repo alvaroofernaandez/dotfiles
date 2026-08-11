@@ -1,75 +1,69 @@
 #!/usr/bin/env bash
+# tmux status-right: CPU load and memory usage.
+#
+# This runs on every status refresh, so it is built to be cheap: three sysctl
+# keys in a single call, one vm_stat, one awk. No `top` (208ms, it samples the
+# whole process table) and no python interpreter start (29ms).
+#
+# CPU is derived from the 1-minute load average rather than sampled utilisation.
+# Sampling utilisation requires two readings separated by a sleep, which is what
+# makes the usual implementations cost seconds per refresh.
+set -uo pipefail
 
-set -euo pipefail
+sysctl_out="$(sysctl -n vm.loadavg hw.logicalcpu hw.memsize 2>/dev/null)"
+vm_out="$(vm_stat 2>/dev/null)"
 
-top_output="$(top -l 1 -n 0 2>/dev/null)"
-total_mem_bytes="$(sysctl -n hw.memsize 2>/dev/null || printf '0')"
+printf '%s\n---\n%s\n' "$sysctl_out" "$vm_out" | awk '
+  BEGIN { section = 0; page = 4096; load = 0; ncpu = 1; total = 0 }
 
-TOP_OUTPUT="$top_output" python3 - "$total_mem_bytes" <<'PY'
-import os
-import re
-import sys
+  /^---$/ { section = 1; next }
 
-text = os.environ.get("TOP_OUTPUT", "")
-try:
-    total_mem = int(sys.argv[1])
-except Exception:
-    total_mem = 0
+  section == 0 && /^\{/ {
+    gsub(/[{}]/, "")
+    load = $1 + 0
+    next
+  }
+  section == 0 && NF == 1 && total == 0 && ncpu_set == 1 { total = $1 + 0; next }
+  section == 0 && NF == 1 && ncpu_set != 1 { ncpu = $1 + 0; ncpu_set = 1; next }
 
-cpu_match = re.search(r"CPU usage:\s*([0-9.]+)%\s*user,\s*([0-9.]+)%\s*sys,\s*([0-9.]+)%\s*idle", text)
-phys_match = re.search(r"PhysMem:\s*([^\n]+)", text)
+  section == 1 && /page size of/ {
+    for (i = 1; i <= NF; i++) if ($i == "of") { page = $(i + 1) + 0; break }
+    next
+  }
+  section == 1 && /^Pages active/                 { gsub(/\./, ""); active = $NF + 0 }
+  section == 1 && /^Pages wired down/             { gsub(/\./, ""); wired  = $NF + 0 }
+  section == 1 && /^Pages occupied by compressor/ { gsub(/\./, ""); comp   = $NF + 0 }
 
-cpu_used = 0.0
-if cpu_match:
-    cpu_used = float(cpu_match.group(1)) + float(cpu_match.group(2))
+  END {
+    if (ncpu <= 0) ncpu = 1
+    cpu = load / ncpu * 100
+    if (cpu > 100) cpu = 100
+    if (cpu < 0) cpu = 0
 
-def parse_size(token: str) -> float:
-    token = token.strip()
-    m = re.match(r"([0-9.]+)\s*([KMGTP])", token)
-    if not m:
-        return 0.0
-    value = float(m.group(1))
-    unit = m.group(2)
-    scale = {
-        "K": 1024,
-        "M": 1024 ** 2,
-        "G": 1024 ** 3,
-        "T": 1024 ** 4,
-        "P": 1024 ** 5,
-    }[unit]
-    return value * scale
+    used_bytes = (active + wired + comp) * page
+    gb = 1073741824
+    used = used_bytes / gb
+    tot  = total / gb
+    if (tot <= 0) tot = used
+    if (used > tot) used = tot
 
-used_mem = 0.0
-if phys_match:
-    line = phys_match.group(1)
-    used = re.search(r"([0-9.]+\s*[KMGTP])\s*used", line)
-    if used:
-        used_mem = parse_size(used.group(1))
+    printf "%s%s %s %.1f%%%s %s %s %.1f/%.1fG #[default]",
+      bold(), "CPU", bar(cpu), cpu, "",
+      sep("RAM"), bar(tot > 0 ? used / tot * 100 : 0), used, tot
+  }
 
-if total_mem <= 0 and used_mem > 0:
-    total_mem = int(used_mem)
-
-mem_pct = (used_mem / total_mem * 100.0) if total_mem > 0 else 0.0
-
-def bar(pct: float, width: int = 12) -> str:
-    pct = max(0.0, min(100.0, pct))
-    filled = int(round((pct / 100.0) * width))
-    return "#" * filled + "-" * (width - filled)
-
-def color_for_pct(pct: float) -> str:
-    if pct >= 85:
-        return "colour196"  # red
-    if pct >= 60:
-        return "colour220"  # yellow
-    return "colour46"       # green
-
-cpu_color = color_for_pct(cpu_used)
-mem_color = color_for_pct(mem_pct)
-
-used_gb = used_mem / (1024 ** 3) if used_mem else 0.0
-total_gb = total_mem / (1024 ** 3) if total_mem else 0.0
-
-cpu_part = f"#[fg=colour45,bold]CPU #[fg={cpu_color}]{bar(cpu_used)} {cpu_used:4.1f}%"
-mem_part = f"#[fg=colour45,bold] RAM #[fg={mem_color}]{bar(mem_pct)} {used_gb:4.1f}/{total_gb:4.1f}G"
-print(cpu_part + mem_part + " #[default]")
-PY
+  function colour(pct) {
+    return pct < 50 ? "#[fg=colour46]" : (pct < 80 ? "#[fg=colour226]" : "#[fg=colour196]")
+  }
+  function bar(pct,   n, i, s) {
+    n = int(pct / 100 * 12 + 0.5)
+    if (n > 12) n = 12
+    if (n < 0) n = 0
+    s = colour(pct)
+    for (i = 0; i < 12; i++) s = s (i < n ? "#" : "-")
+    return s
+  }
+  function bold() { return "#[fg=colour45,bold]" }
+  function sep(label) { return "#[fg=colour45,bold]" label }
+'
+printf '\n'
