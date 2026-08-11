@@ -11,3 +11,7 @@ node_modules/
 
 # Design notes stay local, not published
 .agents/
+
+# Shell secrets stay out of version control
+secrets.zsh
+config/zsh/secrets.zsh

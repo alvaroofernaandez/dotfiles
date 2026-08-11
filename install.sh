@@ -33,6 +33,14 @@ LINKS=(
   "config/yazi-sidebar:.config/yazi-sidebar"
   "config/ghostty:.config/ghostty"
   "home/tmux.conf:.tmux.conf"
+  "home/zshrc:.zshrc"
+
+  # --- terminal tools ---
+  # bat, zoxide, fzf and eza have no config files of their own: their setup
+  # lives in .zshrc above.
+  "config/atuin/config.toml:.config/atuin/config.toml"
+  "config/gh/config.yml:.config/gh/config.yml"
+  "config/git/ignore:.config/git/ignore"
 
   # --- claude code ---
   "config/claude/CLAUDE.md:.claude/CLAUDE.md"

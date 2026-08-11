@@ -29,9 +29,10 @@ fi
 ok "gitleaks is available"
 
 # --- the tracked tree and its history are clean ------------------------------
-scan_out="$(cd "$REPO" && gitleaks detect --source . --redact --no-banner 2>&1)"
-assert_eq "no credentials in the working tree or git history" "yes" \
-  "$(printf '%s' "$scan_out" | rg -q 'no leaks found' && echo yes || echo no)"
+# Judged by exit status: gitleaks prints "no leaks found" on success, so a
+# naive /leaks found/ match would read a clean run as a failure.
+(cd "$REPO" && gitleaks detect --source . --redact --no-banner >/dev/null 2>&1)
+assert_eq "no credentials in the working tree or git history" "0" "$?"
 
 # --- specific values that must never come back -------------------------------
 # Named explicitly: this one was published once already.
@@ -47,16 +48,15 @@ assert_eq "the token is referenced by env var, not by value" "yes" \
 # precisely the failure mode that let the token through the first time.
 canary_dir="$(mktemp -d)"
 trap 'rm -rf "$canary_dir"' EXIT
-cat > "$canary_dir/planted.json" <<'EOF'
-{
-  "environment": {
-    "SOME_SERVICE_TOKEN": "REDACTED_TEST_CANARY"
-  }
-}
-EOF
-canary_out="$(gitleaks detect --source "$canary_dir" --no-git --redact --no-banner 2>&1)"
-assert_eq "a planted credential is detected" "yes" \
-  "$(printf '%s' "$canary_out" | rg -qi 'leaks found' && echo yes || echo no)"
+
+# Built at runtime from random characters rather than written literally. A real
+# token pattern sitting in this file would be flagged by the very scan above —
+# the guard would trip over its own canary and report the repo as dirty forever.
+canary="$(printf 'gh%s_%s' 'p' "$(LC_ALL=C tr -dc 'A-Za-z0-9' </dev/urandom | head -c 36)")"
+printf '{\n  "environment": {\n    "SOME_SERVICE_TOKEN": "%s"\n  }\n}\n' "$canary" \
+  > "$canary_dir/planted.json"
+gitleaks detect --source "$canary_dir" --no-git --redact --no-banner >/dev/null 2>&1
+assert_eq "a planted credential is detected" "1" "$?"
 
 printf '\n%d passed, %d failed\n' "$pass" "$fail"
 [ "$fail" -eq 0 ]
