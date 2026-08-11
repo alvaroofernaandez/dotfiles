@@ -13,6 +13,7 @@ SUITES=(
   "$REPO/tests/shell-hygiene.test.sh"
   "$REPO/tests/install.test.sh"
   "$REPO/tests/launch.test.sh"
+  "$REPO/tests/ghostty-keys.test.sh"
   "$REPO/config/tmux/tests/sidebar-toggle.test.sh"
   "$REPO/config/tmux/tests/open-file.test.sh"
   "$REPO/config/tmux/tests/yazi-sidebar-config.test.sh"

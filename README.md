@@ -17,8 +17,8 @@ Cada pieza está documentada, y toda la lógica propia está cubierta por tests.
 ![Zsh](https://img.shields.io/badge/Zsh-4EAA25?logo=gnubash&logoColor=white&style=for-the-badge)
 ![Claude](https://img.shields.io/badge/Claude%20Code-D97757?logo=anthropic&logoColor=white&style=for-the-badge)
 
-![tests](https://img.shields.io/badge/tests-215%20passing-22c55e?style=flat-square)
-![suites](https://img.shields.io/badge/suites-15-22c55e?style=flat-square)
+![tests](https://img.shields.io/badge/tests-232%20passing-22c55e?style=flat-square)
+![suites](https://img.shields.io/badge/suites-17-22c55e?style=flat-square)
 ![enfoque](https://img.shields.io/badge/enfoque-TDD-8b5cf6?style=flat-square)
 ![secretos](https://img.shields.io/badge/gitleaks-0%20hallazgos-22c55e?style=flat-square)
 ![visibilidad](https://img.shields.io/badge/visibilidad-privado-ef4444?style=flat-square)
@@ -59,6 +59,7 @@ Cada pieza está documentada, y toda la lógica propia está cubierta por tests.
 | 📄 Abrir un archivo | `Enter` sobre él (se abre en pestaña nueva) |
 | ❌ Cerrar ese archivo | `Ctrl+X` · `Alt+w` · `prefix`+`k` |
 | 🪟 Panel scratch flotante | `Alt+g` |
+| ↔️ Moverme entre splits | `Cmd+Alt+H/J/K/L` · `Cmd+[` · `Cmd+]` |
 
 ---
 
@@ -444,6 +445,41 @@ registrado y el script funcionaba, pero la pulsación no llegaba. Regla del proy
 
 Por eso hay tres accesos: `Alt+t` (una pulsación, sin colisión), `prefix`+`e` (no pasa por
 `Option`) y el botón **`[FILES]`** (no depende del teclado en absoluto).
+
+---
+
+## ⌨️ Moverse entre splits
+
+Los paneles de una ventana de Ghostty son **splits suyos**, cada uno con su propia sesión
+de tmux. Moverse entre ellos es cosa de Ghostty: tmux nunca ve esas teclas.
+
+| Atajo | Acción |
+| :--- | :--- |
+| `Cmd+Alt+H` `J` `K` `L` | Salto direccional, sin soltar la fila home |
+| `Cmd+Alt+←` `↓` `↑` `→` | Lo mismo con flechas |
+| `Cmd+[` · `Cmd+]` | Recorrer los splits en orden |
+
+Con ocho abiertos, el ciclado llega a cualquiera sin pensar en la distribución; el salto
+direccional sirve cuando ya sabes dónde está.
+
+> [!NOTE]
+> **Ghostty no permite «ir al split N».** `goto_split` solo acepta direcciones y
+> `previous`/`next` — comprobado contra el binario: `goto_split:1` devuelve
+> `error.InvalidFormat`. Por eso no hay un equivalente a `Cmd+1`…`Cmd+8` como el de las
+> pestañas.
+
+<details>
+<summary><b>Por qué estas teclas y no otras</b></summary>
+
+<br/>
+
+- **`Ctrl+H/J/K/L` queda libre a propósito.** Ghostty recibe las teclas **antes** que
+  tmux, así que atarlas ahí dejaría inservible `vim-tmux-navigator` dentro de cada sesión.
+- **`Cmd+H`, `Cmd+M` y `Cmd+Q` no se tocan.** macOS los usa para ocultar, minimizar y
+  salir; capturarlos dentro del terminal te los quita en toda la ventana.
+- Las flechas se conservan como alias de las letras: misma acción, sin reaprender nada.
+
+</details>
 
 ---
 
