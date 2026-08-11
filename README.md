@@ -106,15 +106,18 @@ brew install tmux yazi neovim bat fd ripgrep sd eza
 ├── config/
 │   ├── ghostty/            Tema Tokyo Night, tipografía y quick terminal
 │   ├── tmux/               Prefix C-a, navegación vim, popup scratch
-│   │   ├── sidebar-toggle.sh
-│   │   ├── open-in-work-pane.sh
-│   │   ├── statusbar.sh
+│   │   ├── sidebar-toggle.sh    Abre y cierra el panel
+│   │   ├── sidebar-follow.sh    Mueve el árbol al hacer cd o z
+│   │   ├── open-file.sh         Abre el archivo en una pestaña nueva
+│   │   ├── close-file.sh        La cierra sin escribir el comando del editor
+│   │   ├── statusbar.sh         CPU / GPU / RAM / hora / fecha
 │   │   └── tests/
 │   ├── yazi/               Config de uso general
 │   ├── yazi-sidebar/       Config exclusiva de la barra lateral
 │   ├── claude/             CLAUDE.md, settings, agentes, comandos, hooks
-│   └── opencode/           opencode.json, AGENTS.md, agentes, comandos, plugins
-├── home/tmux.conf
+│   ├── opencode/           opencode.json, AGENTS.md, agentes, comandos, plugins
+│   └── atuin, gh, git/     Configs de herramientas con fichero propio
+├── home/                   tmux.conf, zshrc, zprofile, gitconfig, p10k.zsh
 ├── install.sh
 └── tests/
 ```
@@ -160,7 +163,7 @@ la transparencia y el desenfoque de Ghostty se mantienen. Los bloques de color s
 única superficie pintada.
 
 Sin glifos de Nerd Font: solo ASCII, así que la fila no se rompe en un terminal sin
-tipografía parcheada. Las reglas completas están en [`.agents/DESIGN.md`](.agents/DESIGN.md).
+tipografía parcheada. Las reglas completas están en `.agents/DESIGN.md`, que se mantiene en local y no se publica.
 
 ## Barra lateral de archivos
 
