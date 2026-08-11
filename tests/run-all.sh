@@ -9,6 +9,7 @@ REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 SUITES=(
   "$REPO/tests/secrets.test.sh"
+  "$REPO/tests/zshrc-secrets.test.sh"
   "$REPO/tests/install.test.sh"
   "$REPO/tests/launch.test.sh"
   "$REPO/config/tmux/tests/sidebar-toggle.test.sh"
