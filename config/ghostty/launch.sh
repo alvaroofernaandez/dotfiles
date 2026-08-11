@@ -44,7 +44,31 @@ if [ "${LAUNCH_RESOLVE_ONLY:-}" = "1" ]; then
 fi
 
 if [ -n "${TMUX_RESOLVED:-}" ]; then
-  exec "$TMUX_RESOLVED" new-session -A -s "$SESSION"
+  if [ -n "${TMUX_SOCKET:-}" ]; then
+    tmux_cmd() { "$TMUX_RESOLVED" -L "$TMUX_SOCKET" "$@"; }
+  else
+    tmux_cmd() { "$TMUX_RESOLVED" "$@"; }
+  fi
+
+  # Every Ghostty tab is a separate tmux client. Attaching them all to one
+  # session makes them render the SAME window: a cd in one tab moves the other,
+  # which defeats working on two projects side by side.
+  #
+  # So each tab takes a session of its own. A session with no client attached is
+  # reused first, which is what makes work survive closing a tab; only when they
+  # are all in use is a new one created.
+  target="$(tmux_cmd list-sessions -F '#{session_name}|#{session_attached}' 2>/dev/null \
+    | awk -F'|' '$2 == "0" { print $1; exit }')"
+
+  if [ "${LAUNCH_PICK_ONLY:-}" = "1" ]; then
+    printf '%s\n' "${target:-new}"
+    exit 0
+  fi
+
+  if [ -n "$target" ]; then
+    exec "$TMUX_RESOLVED" ${TMUX_SOCKET:+-L "$TMUX_SOCKET"} attach -t "$target"
+  fi
+  exec "$TMUX_RESOLVED" ${TMUX_SOCKET:+-L "$TMUX_SOCKET"} new-session
 fi
 
 # No tmux: never leave the user without a terminal.

@@ -66,7 +66,48 @@ chmod +x "$fake_tmux"
 out="$(env -i PATH="$MINIMAL_PATH" HOME="$HOME" TMUX_BIN="$fake_tmux" \
   /bin/bash "$LAUNCH" 2>&1)"
 assert_contains "runs tmux when available" "TMUX_RAN" "$out"
-assert_contains "attaches to the shared session" "new-session -A -s main" "$out"
+# A session of its own, not a shared one: tabs attaching to the same session
+# render the same window and stop being independent workspaces.
+assert_contains "starts a session rather than joining a shared one" "new-session" "$out"
+assert_eq "does not force every tab onto one named session" "yes" \
+  "$(printf '%s' "$out" | rg -q '\-A -s main' && echo no || echo yes)"
+
+# ---每 tab gets its own session ----------------------------------------------
+# Each Ghostty tab is a separate tmux CLIENT. Attaching them all to one session
+# means they render the same window: changing directory in one changes the other,
+# which is the opposite of working on two projects in parallel.
+SESS_SOCKET="launch-sess-$$"
+sess() { tmux -L "$SESS_SOCKET" "$@"; }
+sess_cleanup() { sess kill-server 2>/dev/null; }
+
+# The script is asked what it WOULD attach to, rather than actually execing.
+pick() {
+  env -i PATH="/usr/bin:/bin:/usr/sbin:/sbin" HOME="$HOME" \
+    TMUX_SOCKET="$SESS_SOCKET" LAUNCH_PICK_ONLY=1 /bin/bash "$LAUNCH" 2>/dev/null
+}
+
+sess kill-server 2>/dev/null
+first="$(pick)"
+assert_eq "with no sessions, it creates one" "new" "$first"
+
+sess new-session -d -s alpha 2>/dev/null
+sleep 0.3
+# alpha has no client attached, so it is free to reuse.
+assert_eq "reuses a session that has no client" "alpha" "$(pick)"
+
+# Simulate alpha being in use by a tab.
+sess new-session -d -s beta 2>/dev/null
+sess set -t alpha @fake_attached 1 2>/dev/null
+busy="$(sess list-sessions -F '#{session_name}|#{session_attached}' 2>/dev/null | rg -c 'alpha\|0' || echo 0)"
+assert_eq "a detached session is detectable as free" "1" "$busy"
+
+# With every session attached, a new tab must not join one of them.
+assert_eq "never picks a session that already has a client" "yes" \
+  "$(out="$(pick)";
+     [ "$out" = "new" ] || sess list-sessions -F '#{session_name}|#{session_attached}' 2>/dev/null \
+       | rg -q "^$out\|0" && echo yes || echo no)"
+
+sess_cleanup
 
 # --- the Ghostty config must not reintroduce a bare command ------------------
 cmd_line="$(rg -N '^\s*command\s*=' "$GHOSTTY_CONF" 2>/dev/null)"
