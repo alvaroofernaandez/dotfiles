@@ -5,8 +5,9 @@
 ### Entorno de terminal y agentes en macOS
 
 Configuración personal centrada en un flujo de trabajo sin salir de la terminal:
-tmux, yazi y Ghostty, más la configuración completa de Claude Code y OpenCode
-con sus skills, agentes y comandos. La lógica propia está cubierta por tests.
+tmux, yazi y Ghostty, más Claude Code y OpenCode. Las skills son generales y
+viven una sola vez; cada agente aporta únicamente su configuración. La lógica
+propia está cubierta por tests.
 
 <br/>
 
@@ -19,7 +20,7 @@ con sus skills, agentes y comandos. La lógica propia está cubierta por tests.
 ![Claude](https://img.shields.io/badge/Claude%20Code-D97757?logo=anthropic&logoColor=white&style=flat)
 
 ![visibilidad](https://img.shields.io/badge/visibilidad-privado-red?style=flat)
-![tests](https://img.shields.io/badge/tests-68%20passing-22c55e?style=flat)
+![tests](https://img.shields.io/badge/tests-71%20passing-22c55e?style=flat)
 ![enfoque](https://img.shields.io/badge/enfoque-TDD-22c55e?style=flat)
 
 <br/>
@@ -51,9 +52,9 @@ dejan intactos.
 | `config/yazi-sidebar` | `~/.config/yazi-sidebar` |
 | `config/ghostty` | `~/.config/ghostty` |
 | `home/tmux.conf` | `~/.tmux.conf` |
+| `shared/skills` | `~/.claude/skills`, `~/.config/opencode/skills`, `~/.opencode/skills` |
 | `config/claude/*` | `~/.claude/*` (por ruta) |
 | `config/opencode/*` | `~/.config/opencode/*` (por ruta) |
-| `config/opencode-home/skills` | `~/.opencode/skills` |
 
 Las configuraciones de agentes se enlazan **ruta por ruta**, nunca el directorio
 completo: `~/.claude` guarda además `.credentials.json` y gigabytes de historial de
@@ -70,6 +71,8 @@ brew install tmux yazi neovim bat fd ripgrep sd eza
 
 ```
 .
+├── shared/
+│   └── skills/             70 skills, independientes de la herramienta
 ├── config/
 │   ├── ghostty/            Tema Tokyo Night, tipografía y quick terminal
 │   ├── tmux/               Prefix C-a, navegación vim, popup scratch
@@ -79,9 +82,8 @@ brew install tmux yazi neovim bat fd ripgrep sd eza
 │   │   └── tests/
 │   ├── yazi/               Config de uso general
 │   ├── yazi-sidebar/       Config exclusiva de la barra lateral
-│   ├── claude/             CLAUDE.md, settings, skills, agentes, comandos, hooks
-│   ├── opencode/           opencode.json, AGENTS.md, skills, agentes, plugins
-│   └── opencode-home/      Skills de ~/.opencode
+│   ├── claude/             CLAUDE.md, settings, agentes, comandos, hooks
+│   └── opencode/           opencode.json, AGENTS.md, agentes, comandos, plugins
 ├── home/tmux.conf
 ├── install.sh
 └── tests/
@@ -139,21 +141,44 @@ completo va al árbol, y la previsualización la da el panel de trabajo al abrir
 
 ## Agentes
 
-### Claude Code
+### Skills compartidas
+
+Las 70 skills de `shared/skills` son independientes de la herramienta y se enlazan a
+los tres destinos a la vez. Existen **una sola vez** en el repositorio.
+
+Antes de unificarlas estaban duplicadas y habían divergido: las copias de OpenCode
+seguían midiendo el presupuesto de PR en *"400 changed lines"*, mientras que las de
+Claude ya habían evolucionado a *"400 production lines"* con la regla de que los tests
+no cuentan. Ese es exactamente el fallo que una fuente única evita.
+
+### Lo que NO se comparte, y por qué
+
+Los `commands/` y `agents/` son específicos de cada herramienta. No es duplicación
+accidental: los de OpenCode llevan frontmatter propio y apuntan a rutas distintas.
+
+```yaml
+# config/claude/commands/sdd-apply.md    # config/opencode/commands/sdd-apply.md
+---                                      ---
+description: Implement SDD tasks         description: Implement SDD tasks
+---                                      agent: gentle-orchestrator
+                                         subtask: true
+                                         ---
+```
+
+Son la capa de adaptación entre cada herramienta y las skills compartidas, así que cada
+una conserva la suya.
+
+### Configuración por herramienta
 
 | Ruta | Contenido |
 | --- | --- |
-| `CLAUDE.md` | Instrucciones globales: persona, TDD estricto, pipeline de diseño |
-| `sdd-orchestrator.md` | Reglas de orquestación y delegación para SDD |
-| `RTK.md`, `MCP-PER-PROJECT.md` | Referencia de herramientas y MCP por proyecto |
-| `settings.json` | Permisos, hooks, plugins y marketplaces |
-| `skills/` | 70 skills |
-| `agents/`, `commands/`, `hooks/`, `prompts/` | Subagentes, comandos y hooks |
-
-### OpenCode
-
-`opencode.json`, `AGENTS.md`, y los directorios `skills/`, `agents/`, `commands/`,
-`plugin/`, `plugins/`, `profiles/` y `prompts/`, más las skills de `~/.opencode`.
+| `claude/CLAUDE.md` | Instrucciones globales: persona, TDD estricto, pipeline de diseño |
+| `claude/sdd-orchestrator.md` | Reglas de orquestación y delegación para SDD |
+| `claude/RTK.md`, `MCP-PER-PROJECT.md` | Referencia de herramientas y MCP por proyecto |
+| `claude/settings.json` | Permisos, hooks, plugins y marketplaces |
+| `claude/agents/`, `commands/`, `hooks/`, `prompts/` | Subagentes, comandos y hooks |
+| `opencode/opencode.json`, `AGENTS.md` | Configuración y instrucciones globales |
+| `opencode/agents/`, `commands/`, `plugin/`, `plugins/`, `profiles/`, `prompts/` | Adaptadores y extensiones |
 
 ## Tests
 
@@ -162,12 +187,12 @@ completo va al árbol, y la previsualización la da el panel de trabajo al abrir
 ```
 
 ```
-install                32 passed, 0 failed
+install                35 passed, 0 failed
 sidebar-toggle         12 passed, 0 failed
 open-in-work-pane      14 passed, 0 failed
 yazi-sidebar-config    10 passed, 0 failed
 
-68 passed, 0 failed
+71 passed, 0 failed
 ```
 
 Cada suite levanta su propio servidor de tmux aislado (`tmux -L`) y, en el caso de
@@ -179,7 +204,9 @@ que ejecuta `./install.sh` antes de lanzarlas en una máquina nueva.
 Dos comprobaciones que conviene conservar:
 
 - `install` verifica que `~/.claude` sigue siendo un directorio real tras la instalación
-  y que `.credentials.json` y `projects/` quedan intactos.
+  y que `.credentials.json` y `projects/` quedan intactos. También comprueba que los
+  tres destinos de skills resuelven a **una única fuente**, para que no puedan volver a
+  divergir.
 - `yazi-sidebar-config` verifica que las dos configuraciones de yazi no divergen.
   `YAZI_CONFIG_HOME` reemplaza a `~/.config/yazi` en lugar de fusionarse con ella, así
   que el `opener` está duplicado a propósito y el test falla si una copia se queda atrás.

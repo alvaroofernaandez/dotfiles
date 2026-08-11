@@ -34,13 +34,21 @@ LINKS=(
   "config/ghostty:.config/ghostty"
   "home/tmux.conf:.tmux.conf"
 
+  # --- skills: tool-agnostic, one source linked into every agent ---
+  #
+  # Commands and agents are deliberately NOT shared: OpenCode's carry their own
+  # frontmatter (agent:, subtask:) and point at tool-specific paths, so each
+  # tool keeps its own copy below.
+  "shared/skills:.claude/skills"
+  "shared/skills:.config/opencode/skills"
+  "shared/skills:.opencode/skills"
+
   # --- claude code ---
   "config/claude/CLAUDE.md:.claude/CLAUDE.md"
   "config/claude/RTK.md:.claude/RTK.md"
   "config/claude/sdd-orchestrator.md:.claude/sdd-orchestrator.md"
   "config/claude/MCP-PER-PROJECT.md:.claude/MCP-PER-PROJECT.md"
   "config/claude/settings.json:.claude/settings.json"
-  "config/claude/skills:.claude/skills"
   "config/claude/agents:.claude/agents"
   "config/claude/commands:.claude/commands"
   "config/claude/hooks:.claude/hooks"
@@ -56,8 +64,6 @@ LINKS=(
   "config/opencode/plugins:.config/opencode/plugins"
   "config/opencode/profiles:.config/opencode/profiles"
   "config/opencode/prompts:.config/opencode/prompts"
-  "config/opencode/skills:.config/opencode/skills"
-  "config/opencode-home/skills:.opencode/skills"
 )
 
 stamp="$(date +%Y%m%d%H%M%S)"

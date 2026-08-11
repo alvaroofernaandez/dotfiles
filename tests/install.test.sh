@@ -105,8 +105,22 @@ printf 'SECRET\n' > "$SANDBOX/.claude/.credentials.json"
 printf 'log\n' > "$SANDBOX/.claude/projects/session.jsonl"
 run_install >/dev/null
 
-assert_eq "links ~/.claude/skills" \
-  "$REPO/config/claude/skills" "$(readlink "$SANDBOX/.claude/skills")"
+# Skills are tool-agnostic and live once in shared/, linked into every agent.
+# Commands and agents are NOT: OpenCode's carry their own frontmatter
+# (agent:, subtask:) and tool-specific paths, so each keeps its own copy.
+assert_eq "links ~/.claude/skills to the shared source" \
+  "$REPO/shared/skills" "$(readlink "$SANDBOX/.claude/skills")"
+assert_eq "links ~/.config/opencode/skills to the shared source" \
+  "$REPO/shared/skills" "$(readlink "$SANDBOX/.config/opencode/skills")"
+assert_eq "links ~/.opencode/skills to the shared source" \
+  "$REPO/shared/skills" "$(readlink "$SANDBOX/.opencode/skills")"
+assert_eq "every agent resolves skills to one single source" "1" \
+  "$(for p in .claude/skills .config/opencode/skills .opencode/skills; do
+       readlink "$SANDBOX/$p"; done | sort -u | wc -l | tr -d ' ')"
+
+assert_eq "keeps tool-specific commands separate" "yes" \
+  "$([ "$(readlink "$SANDBOX/.claude/commands")" != "$(readlink "$SANDBOX/.config/opencode/commands")" ] && echo yes || echo no)"
+
 assert_eq "links ~/.claude/agents" \
   "$REPO/config/claude/agents" "$(readlink "$SANDBOX/.claude/agents")"
 assert_eq "links ~/.claude/CLAUDE.md" \
@@ -127,8 +141,6 @@ assert_eq "links ~/.config/opencode/opencode.json" \
   "$REPO/config/opencode/opencode.json" "$(readlink "$SANDBOX/.config/opencode/opencode.json")"
 assert_eq "never links ~/.config/opencode itself" "real directory" \
   "$([ -L "$SANDBOX/.config/opencode" ] && echo symlink || echo "real directory")"
-assert_eq "links ~/.opencode/skills" \
-  "$REPO/config/opencode-home/skills" "$(readlink "$SANDBOX/.opencode/skills")"
 
 # node_modules living beside the linked configs must survive.
 fresh_home
