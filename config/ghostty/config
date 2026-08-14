@@ -101,12 +101,20 @@ keybind = cmd+bracket_right=goto_split:next
 keybind = cmd+shift+enter=toggle_split_zoom
 keybind = cmd+k=clear_screen
 
-# Paste an image into a TUI that reads the system clipboard itself (Claude Code,
-# for one). cmd+v cannot do this: it runs paste_from_clipboard, a terminal action
-# that can only push TEXT down the pty, and image bytes do not fit through it.
-# Those programs listen for ctrl+v — 0x16 — and read the clipboard natively,
-# bypassing the pty. So this sends that byte rather than rebinding cmd+v, which
-# would cost text pasting everywhere else (and 0x16 is quoted-insert in zsh).
+# cmd+v has to mean two things. paste_from_clipboard can only push TEXT down the
+# pty, so an image never survives it; TUIs that accept pasted images (Claude
+# Code) listen for ctrl+v — 0x16 — and read the clipboard natively instead.
+#
+# Rather than pick one and lose the other, cmd+v emits a private sequence that
+# tmux routes to config/tmux/paste-router.sh, which branches on what the
+# clipboard actually holds: 0x16 for a screenshot, an ordinary paste for text.
+# Deciding here instead would cost text pasting everywhere (0x16 is
+# quoted-insert in zsh), and the alternative signal — which app has focus — is
+# unusable, since a Claude Code pane reports the version string `2.1.232`.
+keybind = cmd+v=text:\x1b[9001~
+
+# The router lives in tmux, and `ghostty -e zsh` deliberately skips it. This
+# keeps a direct route to the image path when running without tmux.
 keybind = cmd+shift+v=text:\x16
 keybind = cmd+shift+r=reload_config
 

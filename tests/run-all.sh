@@ -24,6 +24,7 @@ SUITES=(
   "$REPO/config/tmux/tests/close-file.test.sh"
   "$REPO/config/tmux/tests/sidebar-follow.test.sh"
   "$REPO/config/tmux/tests/sidebar-watch.test.sh"
+  "$REPO/config/tmux/tests/paste-router.test.sh"
 )
 
 total_pass=0
