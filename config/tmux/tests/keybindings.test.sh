@@ -71,5 +71,13 @@ assert_eq "prefix+k closes an opened file without Option" "yes" \
 assert_eq "the close key is not a Spanish-ISO dead key" "yes" \
   "$(printf '%s' "$root_keys" | rg -q 'M-[eiun]\s+run-shell.*close-file' && echo no || echo yes)"
 
+# --- copying must reach the system clipboard ---------------------------------
+# `mouse on` means tmux owns the drag, so Ghostty has no selection of its own
+# and cmd+c comes back empty unless tmux exports the copy itself. The default
+# `external` only relays OSC 52 from other programs, never tmux's own copies,
+# which left mouse selections stranded in the paste buffer.
+assert_eq "tmux exports its own copies via OSC 52" "on" \
+  "$("${TMUX_TEST[@]}" show -gv set-clipboard 2>/dev/null)"
+
 printf '\n%d passed, %d failed\n' "$pass" "$fail"
 [ "$fail" -eq 0 ]

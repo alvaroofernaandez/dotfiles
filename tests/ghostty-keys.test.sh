@@ -49,6 +49,14 @@ done
 assert_eq "leaves ctrl+hjkl to tmux and vim" "yes" \
   "$(rg -q '^keybind = ctrl\+[hjkl]=' "$CONF" 2>/dev/null && echo no || echo yes)"
 
+# --- Option must stay a composition modifier ---------------------------------
+# On the "Spanish - ISO" layout this machine uses, Option composes the whole
+# programming character set: @ (opt+2), | (opt+1), # (opt+3), [ ] { } \ and
+# ~ (opt+ñ). Turning it into Alt/meta makes every one of them untypable, and
+# nothing here needs meta — the only <A-…> maps in Neovim are <Nop>.
+assert_eq "Option is not turned into Alt" "yes" \
+  "$(rg -q '^macos-option-as-alt = (true|left|right)' "$CONF" 2>/dev/null && echo no || echo yes)"
+
 # --- no duplicate bindings ----------------------------------------------------
 dupes="$(rg -o '^keybind = [^=]+' "$CONF" 2>/dev/null | sort | uniq -d | wc -l | tr -d ' ')"
 assert_eq "no key is bound twice" "0" "$dupes"

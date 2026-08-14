@@ -37,7 +37,13 @@ window-inherit-working-directory = true
 # `tabs` looks nicer but has a known Ghostty bug: its titlebar style does not
 # update when the system switches light/dark. `transparent` follows the theme.
 macos-titlebar-style = transparent
-macos-option-as-alt = true
+# Keep Option as a composition modifier, NOT as Alt/meta. On a Spanish - ISO
+# layout, Option is required for @ | # [ ] { } \ ~ — treating it as Alt breaks
+# every one of them. Nothing here needs meta: the only <A-…> mappings in Neovim
+# (config/keymaps.lua) are <Nop>, and neither tmux nor zsh bind meta keys.
+# Ghostty resolves its own keybinds (cmd+alt+hjkl below) before this setting, so
+# split navigation is unaffected.
+macos-option-as-alt = false
 macos-window-shadow = true
 
 # Translucent background with blur
