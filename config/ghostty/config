@@ -100,6 +100,14 @@ keybind = cmd+bracket_left=goto_split:previous
 keybind = cmd+bracket_right=goto_split:next
 keybind = cmd+shift+enter=toggle_split_zoom
 keybind = cmd+k=clear_screen
+
+# Paste an image into a TUI that reads the system clipboard itself (Claude Code,
+# for one). cmd+v cannot do this: it runs paste_from_clipboard, a terminal action
+# that can only push TEXT down the pty, and image bytes do not fit through it.
+# Those programs listen for ctrl+v — 0x16 — and read the clipboard natively,
+# bypassing the pty. So this sends that byte rather than rebinding cmd+v, which
+# would cost text pasting everywhere else (and 0x16 is quoted-insert in zsh).
+keybind = cmd+shift+v=text:\x16
 keybind = cmd+shift+r=reload_config
 
 # Drop-down terminal from anywhere (needs Accessibility permission on macOS)
