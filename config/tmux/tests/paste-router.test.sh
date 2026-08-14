@@ -58,11 +58,51 @@ assert_eq "an empty clipboard routes to text" "text" "$(route_for "$CLIP_EMPTY")
 assert_eq "falls back to osascript when no override is given" "yes" \
   "$(rg -q 'clipboard info' "$ROUTER" 2>/dev/null && echo yes || echo no)"
 
-# --- the two sides of the branch ----------------------------------------------
+# --- the two sides of the branch, by behaviour --------------------------------
+# A stub standing in for tmux records the arguments it was handed, so these
+# assert what the router DOES rather than what its source happens to contain.
+STUB_DIR="$(mktemp -d)"
+trap 'rm -rf "$STUB_DIR"' EXIT
+STUB="$STUB_DIR/tmux"
+cat >"$STUB" <<'STUB_EOF'
+#!/bin/sh
+printf '%s\n' "$*" >>"$STUB_LOG"
+STUB_EOF
+chmod +x "$STUB"
+
+# run-shell hands the script launchd's PATH, which has no Homebrew in it — the
+# exact trap launch.sh documents. `env -i` reproduces it, and tmux MUST still be
+# found or the binding dies with "returned 127".
+MINIMAL_PATH=/usr/bin:/bin:/usr/sbin:/sbin
+run_router() {
+  STUB_LOG="$STUB_DIR/log" env -i \
+    PATH="$MINIMAL_PATH" \
+    HOME="$HOME" \
+    STUB_LOG="$STUB_DIR/log" \
+    TMUX_BIN="$STUB" \
+    CLIPBOARD_INFO="$1" \
+    sh "$ROUTER" >/dev/null 2>&1
+  echo "$?"
+}
+
+: >"$STUB_DIR/log"
+assert_eq "the image path exits cleanly under a minimal PATH" "0" \
+  "$(run_router "$CLIP_SCREENSHOT")"
 assert_eq "the image path sends the 0x16 byte" "yes" \
-  "$(rg -q 'send-keys .*0x16|send-keys .*C-v' "$ROUTER" 2>/dev/null && echo yes || echo no)"
+  "$(rg -q 'send-keys.*0x16' "$STUB_DIR/log" 2>/dev/null && echo yes || echo no)"
+
+: >"$STUB_DIR/log"
+assert_eq "the text path exits cleanly under a minimal PATH" "0" \
+  "$(run_router "$CLIP_TEXT")"
 assert_eq "the text path pastes through tmux rather than 0x16" "yes" \
-  "$(rg -q 'paste-buffer' "$ROUTER" 2>/dev/null && echo yes || echo no)"
+  "$(rg -q 'paste-buffer' "$STUB_DIR/log" 2>/dev/null && echo yes || echo no)"
+assert_eq "the text path never sends 0x16" "yes" \
+  "$(rg -q '0x16' "$STUB_DIR/log" 2>/dev/null && echo no || echo yes)"
+
+# --- tmux must be located without help from PATH ------------------------------
+assert_eq "resolves a real tmux when PATH does not provide one" "yes" \
+  "$(bin="$(env -i PATH="$MINIMAL_PATH" HOME="$HOME" RESOLVE_ONLY=1 sh "$ROUTER" 2>/dev/null)"; \
+     [ -n "$bin" ] && [ -x "$bin" ] && echo yes || echo no)"
 
 printf '\n%d passed, %d failed\n' "$pass" "$fail"
 [ "$fail" -eq 0 ]

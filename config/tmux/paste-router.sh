@@ -20,6 +20,37 @@
 # without acting, which is how the tests inspect routing without a clipboard —
 # the same escape hatch launch.sh offers through LAUNCH_RESOLVE_ONLY.
 
+# tmux runs this through run-shell, which inherits launchd's PATH
+# (/usr/bin:/bin:/usr/sbin:/sbin) rather than the shell's. A bare `tmux` is NOT
+# found there and the binding dies with "returned 127" — the same trap launch.sh
+# resolves, for the same reason. osascript and pbpaste are in /usr/bin, so only
+# tmux needs locating. TMUX_BIN overrides it, as the tests do.
+if [ -n "${TMUX_BIN:-}" ] && [ -x "${TMUX_BIN:-}" ]; then
+  TMUX_RESOLVED="$TMUX_BIN"
+else
+  for candidate in \
+    /opt/homebrew/bin/tmux \
+    /usr/local/bin/tmux \
+    "$HOME/.nix-profile/bin/tmux" \
+    /usr/bin/tmux
+  do
+    if [ -x "$candidate" ]; then
+      TMUX_RESOLVED="$candidate"
+      break
+    fi
+  done
+
+  if [ -z "${TMUX_RESOLVED:-}" ]; then
+    found="$(command -v tmux 2>/dev/null)"
+    [ -n "$found" ] && [ -x "$found" ] && TMUX_RESOLVED="$found"
+  fi
+fi
+
+if [ "${RESOLVE_ONLY:-}" = "1" ]; then
+  [ -n "${TMUX_RESOLVED:-}" ] && printf '%s\n' "$TMUX_RESOLVED"
+  exit 0
+fi
+
 if [ -n "${CLIPBOARD_INFO+x}" ]; then
   info="$CLIPBOARD_INFO"
 else
@@ -51,9 +82,9 @@ target="${TMUX_PANE:-}"
 
 if [ "$route" = "image" ]; then
   # Hand the byte to the application and let it read the clipboard itself.
-  tmux send-keys ${target:+-t "$target"} 0x16
+  "$TMUX_RESOLVED" send-keys ${target:+-t "$target"} 0x16
 else
   # paste-buffer honours bracketed paste, which a raw send-keys would not.
-  tmux set-buffer -- "$(pbpaste)" 2>/dev/null
-  tmux paste-buffer ${target:+-t "$target"} -p
+  "$TMUX_RESOLVED" set-buffer -- "$(pbpaste)" 2>/dev/null
+  "$TMUX_RESOLVED" paste-buffer ${target:+-t "$target"} -p
 fi
