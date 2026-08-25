@@ -15,3 +15,10 @@ node_modules/
 # Shell secrets stay out of version control
 secrets.zsh
 config/zsh/secrets.zsh
+
+# Auto-generated index of every agent skill installed on this machine, rebuilt by
+# scanning $HOME. It therefore lists whatever happens to be installed — private and
+# client skills included, with their absolute paths — and rewrites itself on every
+# refresh. Sanitising it once does not hold: the next refresh puts the material back.
+# It stays local; the orchestrator reads it from disk, not from git.
+.atl/
