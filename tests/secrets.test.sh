@@ -36,9 +36,22 @@ assert_eq "no credentials in the working tree or git history" "0" "$?"
 
 # --- specific values that must never come back -------------------------------
 # Named explicitly: this one was published once already.
-assert_eq "the rotated Engram token is absent from every commit" "yes" \
-  "$(cd "$REPO" && git log --all -p 2>/dev/null \
-     | rg -q 'REDACTED-ROTATED-TOKEN' && echo no || echo yes)"
+# The value is reassembled at run time rather than written out.
+#
+# The scan below reads every commit, and one of those commits added this file.
+# Spelled in full, the check finds its own source and reports the token as
+# still present. It passed locally only by accident: `rg -q` exits at the first
+# match, `git log` dies of SIGPIPE, and pipefail turned that into a non-zero
+# pipeline — so the `&&` branch never ran and the failure looked like a pass.
+# CI, with different timing, reported it honestly.
+rotated_half_a="7c346f3e53d1b1a79c6aacaa4f10302"
+rotated_half_b="49c42901779c304c24ba409a5ef00e045"
+rotated="${rotated_half_a}${rotated_half_b}"
+
+# Counted rather than short-circuited, so neither SIGPIPE nor pipefail can
+# turn the answer into its opposite.
+rotated_hits="$(cd "$REPO" && git log --all -p 2>/dev/null | rg -c "$rotated" || true)"
+assert_eq "the rotated Engram token is absent from every commit" "0" "${rotated_hits:-0}"
 
 assert_eq "the token is referenced by env var, not by value" "yes" \
   "$(rg -q '"ENGRAM_CLOUD_TOKEN"\s*:\s*"\{env:' "$REPO/config/opencode/opencode.json" 2>/dev/null && echo yes || echo no)"
