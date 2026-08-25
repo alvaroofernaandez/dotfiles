@@ -37,19 +37,35 @@ jobs:
       # Linux here; the tmux suites need a tmux binary.
       # run-all.sh parses each suite's summary with sd and rg. Without them the
       # counts come back empty and passing suites are reported as failures —
-      # a silent, misleading break rather than an honest one.
+      # a silent, misleading break rather than an honest one. It now refuses to
+      # start without them, so this step failing is unmissable.
+      #
+      # gitleaks is installed with `go install` rather than its upstream shell
+      # script, which returns 404. The Go toolchain is already here for the
+      # build, so this adds no dependency of its own.
       - name: install shell test dependencies
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y -qq tmux ripgrep
-          cargo install sd --quiet 2>/dev/null || {
-            curl -sSfL "https://github.com/chmln/sd/releases/latest/download/sd-v1.0.0-x86_64-unknown-linux-gnu.tar.gz" \
-              | tar xz -C /tmp --strip-components=1 --wildcards '*/sd'
-            sudo install -m755 /tmp/sd /usr/local/bin/sd
-          }
-          curl -sSfL https://raw.githubusercontent.com/gitleaks/gitleaks/master/scripts/install.sh \
-            | sh -s -- -b /usr/local/bin || echo "gitleaks unavailable; its suite will report it"
-          sd --version && rg --version | head -1
+          cargo install sd --quiet
+          go install github.com/gitleaks/gitleaks/v8@latest
+          echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
+
+      - name: verify the toolchain is complete
+        run: |
+          # Checked explicitly: every one of these missing has already caused a
+          # run that blamed the tests for a missing binary.
+          for tool in tmux rg sd gitleaks; do
+            command -v "$tool" >/dev/null || { echo "missing: $tool"; exit 1; }
+            echo "$tool: $(command -v "$tool")"
+          done
+
+      # The tmux, yazi and zsh suites exercise the *installed* configs under
+      # ~/.config, not the ones in the repo, so they need a real installation
+      # first. This is the same instruction the README gives for a fresh machine.
+      # The runner is throwaway, so linking into its $HOME is free.
+      - name: install the dotfiles
+        run: ./install.sh
 
       - name: shell tests
         run: ./tests/run-all.sh
