@@ -82,19 +82,41 @@ jobs:
       # Platform packages go first. The CLI names them as optionalDependencies,
       # and publishing it against versions that do not exist yet gives anyone
       # installing in that window a package with no binary.
-      - name: publish platform packages
+      #
+      # Every path is passed with a leading "./". Without it npm reads an
+      # argument like "dist-npm/cli" as a GitHub shorthand (owner/repo) rather
+      # than a directory, and goes looking for a repository that does not exist.
+      # The platform loop only escaped this because "dist-npm/*/" expands with a
+      # trailing slash.
+      - name: publish
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
-          for dir in dist-npm/dotfiles-installer-*/; do
-            echo "publishing $dir"
-            npm publish "$dir" --access public --provenance
+          set -euo pipefail
+
+          publish_dir() {
+            local dir="$1"
+            local name version
+            name="$(node -p "require('${dir}/package.json').name")"
+            version="$(node -p "require('${dir}/package.json').version")"
+
+            # Idempotent: npm refuses to republish an existing version, which
+            # would otherwise make any re-run of a partially successful job fail
+            # on the packages that already went out.
+            if npm view "${name}@${version}" version >/dev/null 2>&1; then
+              echo "already published: ${name}@${version}"
+              return 0
+            fi
+
+            echo "publishing ${name}@${version}"
+            npm publish "${dir}" --access public --provenance
+          }
+
+          for dir in ./dist-npm/dotfiles-installer-*/; do
+            publish_dir "${dir%/}"
           done
 
-      - name: publish CLI package
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-        run: npm publish dist-npm/cli --access public --provenance
+          publish_dir ./dist-npm/cli
 
       - name: summary
         run: |
