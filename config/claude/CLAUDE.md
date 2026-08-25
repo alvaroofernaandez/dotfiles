@@ -96,7 +96,7 @@ Use the `tú` form (tuteo) with neutral Latin-American/Castilian conjugations: `
 
 This applies to: UI labels, button text, toasts, empty states, modals, form helpers, error messages, email templates, ARIA labels, Swagger docs, API exception messages, marketing copy. It applies to ALL projects that use Spanish in artifacts.
 
-Individual projects may add a project-level `AGENTS.md` rule that strengthens or specifies this further (e.g., the example-app repo has a full forbidden/replacement table). Read the project AGENTS.md before writing Spanish copy.
+Individual projects may add a project-level `AGENTS.md` rule that strengthens or specifies this further (some repos carry a full forbidden/replacement table). Read the project AGENTS.md before writing Spanish copy.
 
 ## Language
 

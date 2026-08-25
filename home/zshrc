@@ -115,7 +115,7 @@ eval "$(atuin init zsh)"
 export PATH="/Users/alvaroofernaandez/.antigravity/antigravity/bin:$PATH"
 
 # Auto-switch Node version when entering a directory with an .nvmrc file.
-# Added by Claude Code — example-billing-frontend audit cleanup.
+# Added by Claude Code during a frontend audit cleanup.
 autoload -U add-zsh-hook
 load-nvmrc() {
   if [[ -f .nvmrc ]]; then

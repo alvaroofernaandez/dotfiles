@@ -492,9 +492,9 @@ se enlazan a los tres destinos a la vez, así que existen una sola vez.
 
 | Skill | Función |
 | :--- | :--- |
-| 📄 `example-org-pdf-report` | Informes y propuestas en PDF A4 con marca |
-| 🏗️ `example-org-repo-prep` | Deja un repositorio con descripción, topics y README de la casa |
-| 🎬 `example-org-video-demo` | Vídeos de demo de producto de 60–90 s |
+| 📄 `pdf-report` | Documentos PDF A4 de calidad de imprenta, de cualquier tipo |
+| 🏗️ `repo-prep` | Deja un repositorio con descripción, topics y README de la casa |
+| 🎬 `product-demo-video` | Vídeos de demo de producto de 60–90 s |
 | 🚢 `ship` | De árbol de trabajo a PR publicada |
 
 Las skills de marketplaces y packs de terceros **no se versionan**: cada herramienta las

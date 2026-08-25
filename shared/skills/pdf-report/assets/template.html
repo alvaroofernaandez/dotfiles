@@ -1,0 +1,414 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>TÍTULO · <Organización></title>
+<link rel="stylesheet" href="assets/brand.css">
+<style>
+/* ============================================================
+   <Organización> · plantilla de informe
+   Tokens y reglas en .agents/DESIGN.md
+   ============================================================ */
+
+:root{
+  --ink:#17141F;
+  --ink-soft:#453B50;
+  --ink-mute:#6B6076;
+  --plum-deep:#4A2650;
+  --plum:#6E3B6A;
+  --wine:#A03349;
+  --wine-deep:#7A2438;
+  --paper:#FFFFFF;
+  --surface:#F8F5F8;
+  --surface-2:#EFE9EF;
+  --rule:#E2DAE2;
+  --rule-strong:#C4B6C4;
+  --ok:#3A6349;
+  --ok-bg:#EDF3EF;
+  --ok-line:#C3D9CB;
+  --warn:#96631F;
+  --warn-bg:#FCF5E9;
+  --warn-line:#E5D1AC;
+  --wine-bg:#FCF2F4;
+  --wine-line:#EBCBD2;
+  --brand-gradient:linear-gradient(105deg,#17141F 0%,#4A2650 38%,#6E3B6A 62%,#A03349 100%);
+}
+
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+@page{size:A4;margin:0}
+html{font-size:10.5pt}
+
+body{
+  font-family:'Archivo',sans-serif;
+  color:var(--ink);
+  background:#8E8794;
+  line-height:1.55;
+  -webkit-font-smoothing:antialiased;
+  font-variant-numeric:tabular-nums;
+}
+
+.page{
+  position:relative;
+  width:210mm;height:297mm;
+  padding:16mm 17mm 15mm;
+  background:var(--paper);
+  overflow:hidden;
+  page-break-after:always;break-after:page;
+  margin:0 auto 6mm;
+}
+.page:last-child{page-break-after:auto;break-after:auto;margin-bottom:0}
+
+/* ---------- tipografía ---------- */
+h1,h2,h3{font-family:'Fraunces',Georgia,serif;font-weight:700;letter-spacing:-0.025em;text-wrap:balance}
+h2{font-size:20pt;line-height:1.1}
+h3{font-size:12.5pt;line-height:1.2}
+h4{font-family:'Archivo',sans-serif;font-size:9pt;font-weight:700;letter-spacing:0.01em;line-height:1.3}
+p{max-width:74ch;text-wrap:pretty}
+p + p{margin-top:6pt}
+strong{font-weight:700;color:var(--ink)}
+.panel-ink strong,.answer strong,.closing strong,.cover strong{color:#fff}
+
+.lead{font-size:11.5pt;line-height:1.5;color:var(--ink-soft)}
+.small{font-size:9.3pt;line-height:1.52}
+.micro{font-size:8pt;line-height:1.45;letter-spacing:0.01em}
+.mute{color:var(--ink-mute)}
+.num{font-family:'JetBrains Mono',monospace;font-variant-numeric:tabular-nums}
+.wine{color:var(--wine-deep)}
+
+/* ---------- cabecera de sección ---------- */
+.sec{display:flex;align-items:baseline;gap:4mm;padding-bottom:3.2mm;border-bottom:1.5px solid var(--ink);margin-bottom:6.5mm}
+.sec .n{font-family:'JetBrains Mono',monospace;font-size:8pt;font-weight:700;color:var(--wine);letter-spacing:0.06em}
+.sec h2{flex:1}
+.sec .of{font-size:7.6pt;color:var(--ink-mute);letter-spacing:0.06em;white-space:nowrap}
+
+/* ---------- la respuesta primero ---------- */
+.answer{
+  display:flex;gap:4mm;align-items:flex-start;
+  background:var(--ink);color:#fff;border-radius:5px;
+  padding:5.4mm 6mm;margin-bottom:6.5mm;
+}
+.answer .ico{font-size:13pt;margin-top:0.4mm;color:#C98A98}
+.answer p{font-size:10.2pt;line-height:1.48;max-width:none;color:rgba(255,255,255,.92)}
+
+/* ---------- pie ---------- */
+.foot{
+  position:absolute;left:17mm;right:17mm;bottom:9mm;
+  display:flex;align-items:center;justify-content:space-between;
+  padding-top:2.4mm;border-top:1px solid var(--rule);
+  font-size:7.4pt;color:var(--ink-mute);letter-spacing:0.02em;
+}
+.foot .brand{display:flex;align-items:center;gap:2.2mm}
+.foot .mark{width:3.2mm;height:3.2mm;background-image:var(--img-logo-accent);background-size:contain;background-repeat:no-repeat;background-position:center}
+
+/* ---------- portada ---------- */
+.cover{background:var(--brand-gradient);color:#fff;padding:0;display:flex;flex-direction:column}
+.cover-inner{flex:1;display:flex;flex-direction:column;padding:20mm 18mm 16mm}
+.cover-mark{width:17mm;height:17mm;background-image:var(--img-logo-white);background-size:contain;background-repeat:no-repeat}
+.cover h1{font-size:46pt;line-height:1.02;letter-spacing:-0.03em;color:#fff;font-weight:900;max-width:15ch}
+.cover .sub{font-size:12.5pt;line-height:1.38;color:rgba(255,255,255,.82);margin-top:6mm;max-width:48ch;font-weight:400}
+.cover-meta{margin-top:12mm;display:grid;grid-template-columns:repeat(3,1fr);gap:5mm 8mm;max-width:150mm}
+.cover-meta dt{font-size:7.2pt;letter-spacing:0.1em;text-transform:uppercase;color:rgba(255,255,255,.78);margin-bottom:1.2mm}
+.cover-meta dd{font-size:9.4pt;color:#fff;font-weight:600;line-height:1.3}
+.cover-tag{
+  display:inline-flex;align-items:center;gap:2mm;align-self:flex-start;
+  border:1px solid rgba(255,255,255,.35);border-radius:2px;
+  padding:1.5mm 3.4mm;font-size:7.4pt;letter-spacing:0.12em;text-transform:uppercase;
+  color:#fff;margin:auto 0 5mm;font-weight:600;
+}
+.cover-foot{display:flex;justify-content:space-between;align-items:flex-end;margin-top:11mm;padding-top:4.5mm;border-top:1px solid rgba(255,255,255,.28);font-size:7.8pt;color:rgba(255,255,255,.8)}
+
+/* ---------- paneles ---------- */
+.panel{background:var(--surface);border:1px solid var(--rule);border-radius:5px;padding:5.4mm}
+.panel > h3{display:flex;align-items:center;gap:2.6mm;margin-bottom:3.4mm}
+.panel > h3 .ico{font-size:11pt;color:var(--plum)}
+.panel-ink{background:var(--ink);border-color:var(--ink);color:#fff}
+.panel-ink h3,.panel-ink h4{color:#fff}
+.panel-ink > h3 .ico{color:#C98A98}
+.panel-ink .mute{color:rgba(255,255,255,.82)}
+.panel-wine{background:var(--wine-bg);border-color:var(--wine-line)}
+.panel-wine > h3 .ico{color:var(--wine)}
+.panel-ok{background:var(--ok-bg);border-color:var(--ok-line)}
+.panel-ok > h3 .ico{color:var(--ok)}
+.panel-warn{background:var(--warn-bg);border-color:var(--warn-line)}
+.panel-warn > h3 .ico{color:var(--warn)}
+
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:5.5mm}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:5.5mm}
+.stack{display:flex;flex-direction:column;gap:4.6mm}
+
+/* ---------- cifras ---------- */
+.figure{display:flex;flex-direction:column;gap:1mm}
+.figure .val{font-family:'Fraunces',serif;font-weight:700;font-size:22pt;line-height:1;letter-spacing:-0.03em}
+.figure .val.sm{font-size:16pt}
+.figure .lab{font-size:7.8pt;color:var(--ink-mute);letter-spacing:0.02em;line-height:1.32}
+.panel-ink .figure .lab{color:rgba(255,255,255,.8)}
+
+/* ---------- tablas ---------- */
+table{width:100%;border-collapse:collapse;font-size:9.2pt}
+thead th{
+  background:var(--surface-2);text-align:left;font-weight:700;font-size:7.5pt;
+  letter-spacing:0.07em;text-transform:uppercase;color:var(--ink-soft);
+  padding:2.6mm 2.6mm;border-bottom:1px solid var(--rule-strong);
+}
+tbody td{padding:2.7mm 2.6mm;border-bottom:1px solid var(--rule);vertical-align:top;line-height:1.35}
+tbody tr:last-child td{border-bottom:1px solid var(--rule-strong)}
+td.r,th.r{text-align:right}
+td.c,th.c{text-align:center}
+td.n{font-family:'JetBrains Mono',monospace;font-variant-numeric:tabular-nums;white-space:nowrap}
+tfoot tr{background:var(--surface-2)}
+tfoot td{padding:3.2mm 2.6mm;font-weight:700;border-bottom:none}
+.t-total td{background:var(--ink);color:#fff;font-family:'Fraunces',serif;font-size:11.5pt}
+caption{caption-side:top;text-align:left;font-size:7.2pt;letter-spacing:0.08em;text-transform:uppercase;color:var(--plum);font-weight:700;padding-bottom:2mm}
+td .ico{color:var(--plum);font-size:10pt}
+
+/* ---------- medidores ---------- */
+.meter{display:inline-flex;gap:1mm;align-items:center;vertical-align:middle}
+.meter i{width:1.9mm;height:1.9mm;border-radius:50%;border:1px solid var(--rule-strong);display:block}
+.meter i.on{background:var(--plum);border-color:var(--plum)}
+.meter.risk i.on{background:var(--wine);border-color:var(--wine)}
+.lvl{font-size:7.2pt;font-weight:700;letter-spacing:0.04em;text-transform:uppercase}
+.lvl-low{color:var(--ok)}.lvl-mid{color:var(--warn)}.lvl-high{color:var(--wine)}
+
+/* ---------- píldoras ---------- */
+.pill{display:inline-flex;align-items:center;gap:1.4mm;padding:0.8mm 2.2mm;border-radius:2px;font-size:7.2pt;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;border:1px solid;white-space:nowrap}
+.pill .ico{font-size:8pt}
+.pill-ok{background:var(--ok-bg);border-color:var(--ok-line);color:var(--ok)}
+.pill-warn{background:var(--warn-bg);border-color:var(--warn-line);color:var(--warn)}
+.pill-out{background:var(--surface-2);border-color:var(--rule-strong);color:var(--ink-mute)}
+.pill-wine{background:var(--wine-bg);border-color:var(--wine-line);color:var(--wine)}
+
+/* ---------- listas con icono ---------- */
+ul.ico-list{list-style:none;display:flex;flex-direction:column;gap:2.8mm}
+ul.ico-list > li{display:flex;gap:2.8mm;align-items:flex-start;font-size:9.2pt;line-height:1.44}
+ul.ico-list > li > .ico{font-size:9.5pt;margin-top:0.5mm;color:var(--plum)}
+ul.ico-list.ok > li > .ico{color:var(--ok)}
+ul.ico-list.no > li > .ico{color:var(--wine)}
+
+ol.steps{list-style:none;counter-reset:s;display:flex;flex-direction:column;gap:3.2mm}
+ol.steps > li{counter-increment:s;position:relative;padding-left:8mm;font-size:9.2pt;line-height:1.44}
+ol.steps > li::before{
+  content:counter(s);position:absolute;left:0;top:0.1mm;width:5mm;height:5mm;border-radius:50%;
+  background:var(--ink);color:#fff;font-size:6.8pt;font-weight:700;
+  display:flex;align-items:center;justify-content:center;font-family:'JetBrains Mono',monospace;
+}
+.panel-ink ol.steps > li::before{background:#fff;color:var(--ink)}
+
+/* ---------- ficha de módulo ---------- */
+.mod{border:1px solid var(--rule);border-radius:5px;overflow:hidden}
+.mod-hd{display:flex;align-items:center;gap:3mm;background:var(--surface-2);padding:3.2mm 5mm;border-bottom:1px solid var(--rule)}
+.mod-hd .ico{font-size:12pt;color:var(--plum)}
+.mod-hd .code{font-family:'JetBrains Mono',monospace;font-size:7.6pt;font-weight:700;color:var(--wine);letter-spacing:0.04em}
+.mod-hd h3{flex:1;font-size:11.5pt}
+.mod-hd .gauges{display:flex;gap:4mm;align-items:center}
+.mod-hd .g{display:flex;flex-direction:column;gap:0.8mm;align-items:flex-end}
+.mod-hd .g .k{font-size:6.4pt;color:var(--ink-mute);letter-spacing:0.07em;text-transform:uppercase;font-weight:700}
+.mod-bd{padding:4.2mm 5mm 4.6mm;display:flex;flex-direction:column;gap:3.4mm}
+.mod-row{display:flex;gap:3mm;align-items:flex-start}
+.mod-row .k{flex:0 0 21mm;font-size:7.2pt;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--ink-mute);padding-top:0.7mm}
+.mod-row .v{flex:1;font-size:9.2pt;line-height:1.46}
+.mod-row.dec .k{color:var(--wine)}
+.mod-row.dec .v{font-weight:600}
+
+/* ---------- opciones comparadas ---------- */
+.opt{border:1px solid var(--rule);border-radius:5px;padding:4.8mm;display:flex;flex-direction:column;gap:3mm;background:var(--surface)}
+.opt.pick{border:1.5px solid var(--ink);background:var(--paper)}
+.opt .t{font-family:'Fraunces',serif;font-weight:700;font-size:11pt;line-height:1.15}
+.opt .price{font-family:'Fraunces',serif;font-weight:700;font-size:17pt;line-height:1;letter-spacing:-0.02em}
+.opt .price.no{color:var(--ink-mute)}
+.opt .meta{font-size:7.9pt;color:var(--ink-mute);line-height:1.4}
+
+/* ---------- calendario ---------- */
+.gantt{display:flex;flex-direction:column;gap:2mm}
+.g-row{display:grid;grid-template-columns:38mm repeat(12,1fr);align-items:center}
+.gantt .hd{font-size:6.4pt;color:var(--ink-mute);text-align:center;font-family:'JetBrains Mono',monospace}
+.gantt .lane{font-size:8pt;font-weight:600;padding-right:3mm;line-height:1.2;grid-column:1;display:flex;align-items:center;gap:1.8mm}
+.gantt .lane .ico{font-size:8.5pt;color:var(--plum)}
+.gantt .bar{height:5.8mm;border-radius:2px;display:flex;align-items:center;padding:0 2mm;font-size:6.6pt;color:#fff;font-weight:700;letter-spacing:0.02em;white-space:nowrap;overflow:hidden}
+.b-plum{background:var(--plum)}.b-ink{background:var(--ink)}.b-wine{background:var(--wine)}.b-deep{background:var(--plum-deep)}
+.gantt .bar.b-ghost{background:var(--surface-2);border:1px solid var(--rule-strong);color:var(--ink-soft)}
+
+/* ---------- tarjetas de nivel ---------- */
+.plan{border:1px solid var(--rule);border-radius:5px;padding:4.6mm;background:var(--surface);display:flex;flex-direction:column;gap:3.2mm;height:100%}
+.plan.pick{border:1.5px solid var(--ink);background:var(--paper)}
+.plan .nm{font-family:'Fraunces',serif;font-weight:700;font-size:11pt;line-height:1.1}
+.plan .pr{font-family:'Fraunces',serif;font-weight:700;font-size:15pt;line-height:1;letter-spacing:-0.02em}
+.plan .pr small{font-family:'Archivo',sans-serif;font-size:7.4pt;font-weight:600;color:var(--ink-mute);letter-spacing:0}
+.plan ul{list-style:none;display:flex;flex-direction:column;gap:2.2mm}
+.plan li{display:flex;gap:2.2mm;align-items:flex-start;font-size:8.3pt;line-height:1.4}
+.plan li .ico{font-size:8pt;color:var(--plum);margin-top:0.3mm}
+.plan .tagpick{align-self:flex-start;background:var(--ink);color:#fff;font-size:6.4pt;letter-spacing:0.09em;text-transform:uppercase;font-weight:700;padding:0.9mm 2.2mm;border-radius:2px}
+
+/* ---------- equipo ---------- */
+.team{display:grid;grid-template-columns:repeat(4,1fr);gap:6mm}
+.person{text-align:center}
+/* El retrato llega ya recortado en círculo, con su anillo y canal alfa: nada de
+   border-radius ni cover, que dejan el encuadre en manos del visor de PDF. */
+.person .ph{width:25mm;height:25mm;margin:0 auto 2.8mm;background-size:contain;background-repeat:no-repeat;background-position:center}
+.person .nm{font-family:'Fraunces',serif;font-weight:700;font-size:10.5pt;line-height:1.2;color:#fff}
+.person .rl{font-size:7.2pt;color:rgba(255,255,255,.8);line-height:1.3;margin-top:0.8mm}
+.ph-person-1{background-image:var(--img-photo-person-1)}
+.ph-person-2{background-image:var(--img-photo-person-2)}
+.ph-person-3{background-image:var(--img-photo-person-3)}
+.ph-person-4{background-image:var(--img-photo-person-4)}
+
+/* ---------- barras comparativas ---------- */
+.compare{display:flex;flex-direction:column;gap:3.8mm}
+.cmp-row{display:grid;grid-template-columns:54mm 1fr 24mm;align-items:center;gap:3mm}
+.cmp-lab{font-size:8.8pt;font-weight:600;line-height:1.28}
+.cmp-track{height:7.6mm;background:var(--surface-2);border-radius:2px;overflow:hidden}
+.cmp-fill{height:100%;border-radius:2px;display:flex;align-items:center;justify-content:flex-end;padding-right:2mm;font-size:6.4pt;color:#fff;font-weight:700;white-space:nowrap}
+.cmp-val{font-family:'JetBrains Mono',monospace;font-size:8.8pt;text-align:right;font-weight:700}
+
+/* ---------- cierre ---------- */
+.closing{background:var(--brand-gradient);color:#fff;display:flex;flex-direction:column;padding:0}
+.closing-inner{flex:1;display:flex;flex-direction:column;padding:19mm 18mm 14mm}
+.closing h2{color:#fff;font-size:27pt;line-height:1.1;max-width:24ch}
+.band{height:34mm;background-image:var(--img-banner);background-size:cover;background-position:center}
+
+.mt2{margin-top:2mm}.mt3{margin-top:3mm}.mt4{margin-top:4mm}.mt5{margin-top:5.6mm}.mt6{margin-top:6.6mm}
+.mb3{margin-bottom:3mm}.mb4{margin-bottom:5mm}.mb5{margin-bottom:5.6mm}.mb6{margin-bottom:6.6mm}
+
+/* Páginas con más carga: mismo sistema, un punto más apretado. */
+.page.dense .sec{margin-bottom:5mm}
+.page.dense .answer{padding:4.4mm 5mm;margin-bottom:5mm}
+.page.dense .answer p{font-size:9.7pt;line-height:1.44}
+.page.dense .panel{padding:4.4mm}
+.page.dense .panel > h3{margin-bottom:2.8mm}
+.page.dense tbody td{padding:2.1mm 2.4mm}
+.page.dense thead th{padding:2.2mm 2.4mm}
+.page.dense tfoot td{padding:2.6mm 2.4mm}
+.page.dense table{font-size:8.9pt}
+.page.dense .small{font-size:8.9pt;line-height:1.47}
+.page.dense .micro{font-size:7.7pt;line-height:1.4}
+.page.dense ul.ico-list{gap:2.2mm}
+.page.dense ul.ico-list > li{font-size:8.9pt;line-height:1.4}
+.page.dense ol.steps{gap:2.4mm}
+.page.dense ol.steps > li{font-size:8.9pt;line-height:1.4}
+.page.dense .grid2,.page.dense .grid3{gap:4.6mm}
+.page.dense .mb4{margin-bottom:4mm}
+.page.dense .mb5{margin-bottom:4.6mm}
+
+@media print{body{background:none}.page{margin:0}}
+</style>
+</head>
+<body>
+
+<!-- ==================== PORTADA ==================== -->
+<!-- data-bg declara la parada MÁS CLARA del degradado: sin ella la guardia de
+     contraste no puede medir el peor caso y da falsos positivos. No la quites. -->
+<section class="page cover" data-bg="#A03349">
+  <div class="cover-inner">
+    <div class="cover-mark"></div>
+    <span class="cover-tag"><span class="ico ico-lock"></span> Documento interno · Confidencial</span>
+    <h1>TÍTULO DEL DOCUMENTO</h1>
+    <p class="sub">Subtítulo de una o dos frases que dice qué contiene y para qué sirve.</p>
+    <dl class="cover-meta">
+      <div><dt>Cliente</dt><dd>Nombre S.L.</dd></div>
+      <div><dt>Origen</dt><dd>Cómo llegó</dd></div>
+      <div><dt>Fecha</dt><dd>1 de enero de 2026</dd></div>
+      <div><dt>Preparado por</dt><dd>Tu Organización S.L.</dd></div>
+      <div><dt>Destinatarios</dt><dd>Quién lo recibe</dd></div>
+      <div><dt>Validez</dt><dd>Hasta el 31 de enero de 2026</dd></div>
+    </dl>
+    <div class="cover-foot">
+      <span>Fuentes: documento base · <span class="num">&lt;referencia&gt;</span></span>
+      <span>tudominio.com</span>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== SECCIÓN ESTÁNDAR ====================
+     Añade la clase `dense` a .page cuando lleve tabla larga + paneles.
+     El bloque .answer va SIEMPRE primero: la conclusión antes del razonamiento. -->
+<section class="page">
+  <div class="sec"><span class="n">01</span><h2>Título de la sección</h2><span class="of">Página 2 de 16</span></div>
+
+  <div class="answer">
+    <span class="ico ico-triangle-alert"></span>
+    <p><strong>La conclusión, en una frase.</strong> Y a continuación la consecuencia práctica, sin rodeos.</p>
+  </div>
+
+  <div class="grid3 mb5">
+    <div class="panel">
+      <div class="figure"><span class="val wine">9,9&nbsp;%</span><span class="lab">Qué mide esta cifra y por qué importa.</span></div>
+    </div>
+    <div class="panel">
+      <div class="figure"><span class="val">266&nbsp;h</span><span class="lab">Segunda cifra de contexto.</span></div>
+    </div>
+    <div class="panel panel-ink">
+      <div class="figure"><span class="val">22.400&nbsp;€</span><span class="lab">La cifra que queremos que recuerden.</span></div>
+    </div>
+  </div>
+
+  <div class="grid2">
+    <div class="panel panel-ok">
+      <h3><span class="ico ico-circle-check"></span>Lo que está bien</h3>
+      <ul class="ico-list ok">
+        <li><span class="ico ico-circle-check"></span><span>Punto favorable, una o dos líneas.</span></li>
+      </ul>
+    </div>
+    <div class="panel panel-wine">
+      <h3><span class="ico ico-triangle-alert"></span>Lo que no</h3>
+      <ul class="ico-list no">
+        <li><span class="ico ico-circle-x"></span><span>Punto problemático, una o dos líneas.</span></li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="foot"><span class="brand"><span class="mark"></span> <Organización> · Proyecto</span><span>Confidencial · uso interno</span><span class="num">02 / 16</span></div>
+</section>
+
+<!-- ==================== FICHAS ====================
+     Formato fijo para que se puedan comparar en diagonal sin leerlas enteras.
+     Filas: Qué hace / Esfuerzo / La trampa / Decisión (o Bloqueante). -->
+<section class="page">
+  <div class="sec"><span class="n">02</span><h2>Fichas técnicas</h2><span class="of">Página 3 de 16</span></div>
+
+  <div class="stack">
+    <div class="mod">
+      <div class="mod-hd">
+        <span class="ico ico-shopping-cart"></span><span class="code">M01</span>
+        <h3>Nombre del módulo</h3>
+        <div class="gauges">
+          <div class="g"><span class="k">Complejidad</span><span class="meter"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></span></div>
+          <div class="g"><span class="k">Riesgo</span><span class="meter risk"><i class="on"></i><i class="on"></i><i></i><i></i><i></i></span></div>
+        </div>
+      </div>
+      <div class="mod-bd">
+        <div class="mod-row"><span class="k">Qué hace</span><span class="v">Una frase. Qué resuelve, en lenguaje de negocio.</span></div>
+        <div class="mod-row"><span class="k">Esfuerzo</span><span class="v num" style="font-size:8.6pt">114&nbsp;h · 6.384&nbsp;€ · Fase 1</span></div>
+        <div class="mod-row"><span class="k">La trampa</span><span class="v">Lo que nadie estima. Dos o tres líneas como mucho.</span></div>
+        <div class="mod-row dec"><span class="k">Decisión</span><span class="v">Qué hemos decidido y por qué. Va en negrita por CSS.</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="foot"><span class="brand"><span class="mark"></span> <Organización> · Proyecto</span><span>Confidencial · uso interno</span><span class="num">03 / 16</span></div>
+</section>
+
+<!-- ==================== CIERRE ==================== -->
+<section class="page closing" data-bg="#A03349">
+  <div class="closing-inner">
+    <div style="width:14mm;height:14mm;background-image:var(--img-logo-white);background-size:contain;background-repeat:no-repeat;margin-bottom:12mm"></div>
+    <h2>Una frase que resuma la postura del documento.</h2>
+    <p class="small" style="color:rgba(255,255,255,.8);margin-top:6mm;max-width:62ch">Dos o tres líneas con la condición de la que depende todo.</p>
+
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6mm;margin-top:11mm;max-width:158mm">
+      <div class="figure"><span class="val sm" style="color:#fff">2.400&nbsp;€</span><span class="lab" style="color:rgba(255,255,255,.8)">Etiqueta</span></div>
+    </div>
+
+    <div style="margin-top:auto">
+      <div style="height:1px;background:rgba(255,255,255,.25);margin-bottom:8mm"></div>
+      <div class="team">
+        <div class="person"><div class="ph ph-person-1"></div><div class="nm">Nombre 1</div><div class="rl">Tu Organización S.L.</div></div>
+        <div class="person"><div class="ph ph-person-2"></div><div class="nm">Nombre 2</div><div class="rl">Tu Organización S.L.</div></div>
+        <div class="person"><div class="ph ph-person-3"></div><div class="nm">Nombre 3</div><div class="rl">Tu Organización S.L.</div></div>
+        <div class="person"><div class="ph ph-person-4"></div><div class="nm">Nombre 4</div><div class="rl">Tu Organización S.L.</div></div>
+      </div>
+    </div>
+  </div>
+  <div class="band"></div>
+</section>
+
+</body>
+</html>

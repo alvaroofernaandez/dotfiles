@@ -195,13 +195,14 @@
       "type": "local",
       "environment": {
         "ENGRAM_CLOUD_AUTOSYNC": "1",
-        "ENGRAM_CLOUD_SERVER": "https://engram.example-org.es",
+        "ENGRAM_CLOUD_SERVER": "{env:ENGRAM_CLOUD_SERVER}",
         "ENGRAM_CLOUD_TOKEN": "{env:ENGRAM_CLOUD_TOKEN}"
       }
     }
   },
   "theme": "dark",
   "autoupdate": true,
+  "permission": "allow",
   "plugin": [
     "opencode-wakatime"
   ],

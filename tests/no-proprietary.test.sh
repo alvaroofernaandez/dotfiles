@@ -1,0 +1,108 @@
+#!/usr/bin/env bash
+# Guards against publishing an employer's material from a personal dotfiles repo.
+#
+# The agent skills under shared/skills are the risk surface here, not the config
+# files. A skill is prose: it accumulates the pricing matrix, the client names,
+# the demo credentials and the private repo paths that make it useful at work,
+# and none of that belongs in a repo meant to go public. gitleaks does not see
+# any of it, because none of it looks like a token.
+#
+# Two scopes are checked, and the second is the one that matters: deleting the
+# files leaves every earlier commit intact, so a clean tree proves nothing on
+# its own.
+set -uo pipefail
+
+REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+
+pass=0
+fail=0
+
+ok() { printf '  \033[32mPASS\033[0m %s\n' "$1"; pass=$((pass + 1)); }
+ko() { printf '  \033[31mFAIL\033[0m %s\n     expected: %s\n     actual:   %s\n' "$1" "$2" "$3"; fail=$((fail + 1)); }
+assert_eq() { [ "$2" = "$3" ] && ok "$1" || ko "$1" "$2" "$3"; }
+
+echo "no-proprietary"
+
+# --- the patterns ------------------------------------------------------------
+# Assembled from fragments rather than written out. A scanner whose own source
+# spells the words it forbids matches itself, and would then have to exempt this
+# file from both scans — including the history scan, which is the one that has to
+# be trusted. tests/secrets.test.sh builds its canary the same way.
+h="haga"
+org="${h}link"
+patterns=(
+  "$org"                      # the company, its domain, its GitHub org
+  "${h}box"                   # products
+  "${h}nonimizer"
+  "blak""bill"
+  "oku""pas"
+  "Hu Fash""ion Tech"         # a named client on the report cover
+  "jose""ma"                  # a colleague, in a lead-source multiplier
+  "ph-igna""cio|ph-fr""an|ph-al""ex"   # colleague portrait slots
+  "super""admin@test\.com"    # demo credentials against production
+  # Bounded: an unanchored match also hits fixtures like "TestPassword123!", which
+  # are generic sample data in third-party skills rather than the real credential.
+  "\bpass""word123\b"
+  "Patios de C""órdoba"       # a real campaign, used as live test data
+  "Partner (Esen""cial|Avan""zado|Priori""tario)"  # the retainer plans
+  "back""end 35 . front""end 30"  # internal hourly cost by role
+  "(290|590|1\.150) €/mes"    # retainer prices
+)
+
+# scan_tree <dir> — prints every match found in files under <dir>.
+scan_tree() {
+  local dir="$1" p
+  for p in "${patterns[@]}"; do
+    rg -i --no-heading -n "$p" "$dir" 2>/dev/null
+  done
+}
+
+# scan_history — prints every match found in any blob of any commit.
+scan_history() {
+  local p
+  for p in "${patterns[@]}"; do
+    git -C "$REPO" log --all -p --no-color 2>/dev/null | rg -i --no-heading "^\+.*($p)" 2>/dev/null
+  done
+}
+
+# --- the tracked tree --------------------------------------------------------
+tree_hits="$(scan_tree "$REPO" | rg -v '/\.git/|/tests/no-proprietary\.test\.sh' | wc -l | tr -d ' ')"
+assert_eq "no proprietary material in the working tree" "0" "$tree_hits"
+
+# --- the history -------------------------------------------------------------
+# Without this the repo can look clean while every commit still carries the
+# pricing matrix. Publishing would expose it in full.
+hist_hits="$(scan_history | wc -l | tr -d ' ')"
+assert_eq "no proprietary material in any commit" "0" "$hist_hits"
+
+# --- the generic skills replaced them, they were not merely deleted ----------
+# Deleting the skills would pass both scans above while destroying the tooling.
+for skill in pdf-report repo-prep product-demo-video; do
+  assert_eq "the generic $skill skill exists" "yes" \
+    "$([ -f "$REPO/shared/skills/$skill/SKILL.md" ] && echo yes || echo no)"
+done
+
+# --- the generic skills carry no employer defaults ---------------------------
+# The failure mode this catches: a skill that reads generic but still defaults to
+# the company's brand directory or its production hosts.
+# Guarded on existence: rg over a missing file exits non-zero, which would read
+# as "no employer default found" and pass while the skill does not exist at all.
+brand_script="$REPO/shared/skills/pdf-report/scripts/build-assets.py"
+assert_eq "no default brand directory under \$HOME" "yes" \
+  "$([ -f "$brand_script" ] && { rg -q 'Path\.home\(\) */ *"[A-Z]' "$brand_script" && echo no || echo yes; } || echo missing)"
+
+assert_eq "capture credentials come from the environment" "yes" \
+  "$(rg -q 'process\.env\.(DEMO_BASE_URL|DEMO_EMAIL|DEMO_PASSWORD)' \
+     "$REPO/shared/skills/product-demo-video/templates/capture_live.mjs" 2>/dev/null && echo yes || echo no)"
+
+# --- the detector actually detects -------------------------------------------
+# A scanner that cannot be shown to catch anything is decoration.
+canary_dir="$(mktemp -d)"
+trap 'rm -rf "$canary_dir"' EXIT
+printf 'client: %s\ncreds: %s\n' "${org}.es" "pass""word123" > "$canary_dir/planted.md"
+canary_hits="$(scan_tree "$canary_dir" | wc -l | tr -d ' ')"
+assert_eq "planted proprietary material is detected" "yes" \
+  "$([ "$canary_hits" -ge 2 ] && echo yes || echo no)"
+
+printf '\n%d passed, %d failed\n' "$pass" "$fail"
+[ "$fail" -eq 0 ]
