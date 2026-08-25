@@ -149,20 +149,25 @@ fi   # end of the macOS-only launchd block
 dir_a="$WORKDIR/proyecto-a"; dir_b="$WORKDIR/proyecto-b"
 mkdir -p "$dir_a" "$dir_b"
 
+# A shell needs to be up before the pane reports its own directory. 0.4s is
+# enough on this Mac and not on a slower or busier machine, where the read came
+# back as the process working directory instead.
+SETTLE="${SETTLE:-1.2}"
+
 "${TMUX_TEST[@]}" new-session -d -s main -c "$dir_a" -x 200 -y 50
-sleep 0.4
+sleep "$SETTLE"
 win_a="$("${TMUX_TEST[@]}" list-windows -t main -F '#{window_id}')"
 pane_a="$("${TMUX_TEST[@]}" list-panes -t "$win_a" -F '#{pane_id}')"
 
 "${TMUX_TEST[@]}" new-window -t main -c "$dir_b"
-sleep 0.4
+sleep "$SETTLE"
 win_b="$("${TMUX_TEST[@]}" list-windows -t main -F '#{window_id}' | tail -1)"
 pane_b="$("${TMUX_TEST[@]}" list-panes -t "$win_b" -F '#{pane_id}')"
 
 # Window B is active here, so opening A's sidebar is the case that used to break.
 SIDEBAR_CMD="sleep 600" TMUX_SOCKET="$SOCKET" TMUX_PANE="$pane_a" bash "$SCRIPT" >/dev/null 2>&1
 SIDEBAR_CMD="sleep 600" TMUX_SOCKET="$SOCKET" TMUX_PANE="$pane_b" bash "$SCRIPT" >/dev/null 2>&1
-sleep 0.8
+sleep "$SETTLE"
 
 sb_a="$("${TMUX_TEST[@]}" list-panes -t "$win_a" -F '#{pane_id}|#{?@sidebar,1,0}' | awk -F'|' '$2=="1"{print $1}')"
 sb_b="$("${TMUX_TEST[@]}" list-panes -t "$win_b" -F '#{pane_id}|#{?@sidebar,1,0}' | awk -F'|' '$2=="1"{print $1}')"
