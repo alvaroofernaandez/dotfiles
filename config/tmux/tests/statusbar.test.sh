@@ -120,8 +120,15 @@ assert_eq "keeps exactly one padding space at the end" "yes" \
 es_out="$(LANG=es_ES.UTF-8 LC_ALL=es_ES.UTF-8 bash "$SCRIPT" 2>/dev/null | sd '[0-9]+' 'N')"
 c_out="$(LANG=C LC_ALL=C bash "$SCRIPT" 2>/dev/null | sd '[0-9]+' 'N')"
 assert_eq "renders identically regardless of locale" "$c_out" "$es_out"
+# Meaningful only where es_ES.UTF-8 exists. An ungenerated locale falls back to
+# C without saying so, and the assertion then compares C against C — passing
+# for the wrong reason, which is worse than not running.
+if ! locale -a 2>/dev/null | rg -qi '^es_ES'; then
+  printf '  \033[33mSKIP\033[0m uses a dot as decimal separator (es_ES locale not generated)\n'
+else
 assert_eq "uses a dot as decimal separator" "yes" \
   "$(LANG=es_ES.UTF-8 bash "$SCRIPT" 2>/dev/null | rg -q 'RAM [0-9]+\.[0-9]' && echo yes || echo no)"
+fi
 
 # --- DESIGN.md §7: performance budget ----------------------------------------
 bash "$SCRIPT" >/dev/null 2>&1
