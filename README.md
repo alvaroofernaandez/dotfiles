@@ -19,8 +19,8 @@ Cada pieza está documentada, y toda la lógica propia está cubierta por tests.
 ![Zsh](https://img.shields.io/badge/Zsh-4EAA25?logo=gnubash&logoColor=white&style=for-the-badge)
 ![Claude](https://img.shields.io/badge/Claude%20Code-D97757?logo=anthropic&logoColor=white&style=for-the-badge)
 
-![tests](https://img.shields.io/badge/tests-273%20passing-22c55e?style=flat-square)
-![suites](https://img.shields.io/badge/suites-19-22c55e?style=flat-square)
+![tests](https://img.shields.io/badge/tests-286%20passing-22c55e?style=flat-square)
+![suites](https://img.shields.io/badge/suites-20-22c55e?style=flat-square)
 ![enfoque](https://img.shields.io/badge/enfoque-TDD-8b5cf6?style=flat-square)
 ![secretos](https://img.shields.io/badge/gitleaks-0%20hallazgos-22c55e?style=flat-square)
 ![visibilidad](https://img.shields.io/badge/visibilidad-privado-ef4444?style=flat-square)
@@ -67,7 +67,41 @@ Cada pieza está documentada, y toda la lógica propia está cubierta por tests.
 
 ## ⚡ Instalación
 
-### Un comando (macOS · Linux · Windows)
+### npm — siempre la última versión
+
+```sh
+npx @alvaroofernaandez/dotfiles-installer
+```
+
+`npx` resuelve la última publicada **cada vez**, y cada push a `main` publica una nueva.
+Así que este comando siempre trae el último commit, sin instalar nada de forma permanente.
+
+<details>
+<summary><b>¿Y si lo instalo global? ¿Se actualiza solo?</b></summary>
+
+<br/>
+
+**No, y ninguna herramienta de npm lo hace.** npm no puede empujar una actualización a una
+máquina: un paquete instalado con `npm i -g` se queda en su versión hasta que esa persona
+ejecute algo. Y mejor así — lo contrario sería ejecución remota de código en equipos ajenos.
+
+Lo que sí ocurre es que **el binario avisa**. Al arrancar comprueba el registry (como mucho
+una vez al día, en 3 s, en silencio si no hay red) y, si hay versión nueva, dice cuál es y
+el comando exacto para tu forma de instalación:
+
+```
+A newer version is available: 0.1.42 → 0.1.51
+Update with: npm update -g @alvaroofernaandez/dotfiles-installer
+```
+
+Si instalaste por `curl`, el mismo aviso te dice `dotfiles-installer update` en vez de npm.
+Se desactiva con `DOTFILES_NO_UPDATE_CHECK=1`.
+
+**La forma de estar siempre al día sin pensar es `npx`**, que no instala nada.
+
+</details>
+
+### Un comando, sin Node (macOS · Linux · Windows)
 
 ```sh
 curl -fsSL https://raw.githubusercontent.com/alvaroofernaandez/dotfiles/main/scripts/install.sh | sh
@@ -113,8 +147,38 @@ El re-enlazado posterior solo existe para lo que aún no tiene enlace: entradas 
 manifiesto y skills recién añadidas. Es idempotente.
 
 > [!TIP]
-> Cada push a `main` republica los binarios de las 6 plataformas vía GitHub Actions, así
-> que `update` y el script de arranque recogen los cambios sin tener que etiquetar versiones.
+> Cada push a `main` publica en npm y republica los binarios de las 6 plataformas, así que
+> `npx`, `update` y el script de arranque recogen los cambios sin etiquetar versiones a mano.
+
+<details>
+<summary><b>Cómo se entrega el binario por npm</b></summary>
+
+<br/>
+
+Cada plataforma va en **su propio paquete**, referenciado como `optionalDependencies` con
+campos `os` y `cpu` — el patrón de esbuild. npm consulta esos campos y descarga **solo** el
+que corresponde a la máquina; los otros cinco los salta.
+
+```
+@alvaroofernaandez/dotfiles-installer          ← el que instalas
+├── …-darwin-arm64   (os: darwin, cpu: arm64)  ← npm baja solo el que toca
+├── …-darwin-x64
+├── …-linux-arm64
+├── …-linux-x64
+├── …-win32-arm64
+└── …-win32-x64
+```
+
+**No hay script de `postinstall`.** Nada se ejecuta al instalar, así que funciona con
+`npm ci --ignore-scripts` y en entornos que prohíben scripts de instalación — que son la
+mayoría de los CI. La alternativa habitual (un postinstall que descarga el binario) se
+rompe justo ahí.
+
+Son `optionalDependencies` y no `dependencies` a propósito: como dependencias duras la
+instalación fallaría en **todas** las máquinas, porque cinco de las seis nunca se pueden
+satisfacer.
+
+</details>
 
 ### Sin binario: el instalador de siempre
 
@@ -267,6 +331,10 @@ dotfiles/
 │   ├── install/               Ejecuta: enlaza o copia, siempre con backup
 │   ├── ui/                    Tema Tokyo Night y las tres pantallas
 │   └── update/                git pull + re-enlazado idempotente
+│
+├── 📁 npm/                    Empaquetado para npm
+│   ├── cli/                   Paquete principal: launcher + resolutor
+│   └── build.mjs              Arma los 7 paquetes desde los binarios
 │
 ├── 📁 scripts/install.sh      Arranque de un comando (curl | sh)
 ├── 📋 install.manifest        Qué se instala y dónde — fuente única
@@ -746,15 +814,16 @@ install                40 passed        statusbar              33 passed
 launch                 17 passed        status-style            7 passed
 ghostty-keys           13 passed        paste-router           12 passed
 sidebar-toggle         21 passed        go                6 packages passed
-open-file              17 passed
+open-file              17 passed        npm-packaging          13 passed
 yazi-sidebar-config    10 passed
 
-273 passed, 0 failed
+286 passed, 0 failed
 ```
 
-Una sola orden cubre **shell y Go**: si el toolchain de Go está presente, `run-all.sh`
-ejecuta también `go test ./...` y lo suma al total. Si no lo está, lo salta sin fallar —
-`install.sh` es el instalador que debe funcionar en cualquier parte, y solo necesita bash.
+Una sola orden cubre **shell, Go y npm**: si están los toolchains, `run-all.sh` ejecuta
+también `go test ./...` y `node --test` y los suma al total. Si falta alguno, lo salta sin
+fallar — `install.sh` es el instalador que debe funcionar en cualquier parte, y solo
+necesita bash.
 
 Cada suite levanta su **propio servidor de tmux aislado** (`tmux -L`) y, en el caso de
 `install`, un `$HOME` desechable. Ninguna toca tu sesión ni tu configuración real.

@@ -1,0 +1,110 @@
+# Publishes the installer to npm on every push to main.
+#
+# This is what keeps users current. npm cannot push an update to a machine, so
+# "always up to date" means one of two things in practice:
+#
+#   - `npx @alvaroofernaandez/dotfiles-installer` resolves the latest published
+#     version every time, and this workflow makes the latest one always be the
+#     newest commit;
+#   - a globally installed copy is told, by the binary itself, that a newer
+#     version exists and how to get it.
+#
+# Requires an NPM_TOKEN secret: an npm automation token with publish rights on
+# the @alvaroofernaandez scope.
+name: npm
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write # npm provenance
+
+jobs:
+  publish:
+    name: publish to npm
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.25"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          registry-url: "https://registry.npmjs.org"
+
+      # Nothing is published unless the whole suite passes. A broken installer
+      # published to npm reaches people faster than any other mistake here.
+      - name: test
+        run: |
+          go vet ./...
+          go test ./... -race
+          node --test npm/cli/lib/*.test.js
+
+      - name: derive version
+        id: version
+        run: |
+          if [[ "${GITHUB_REF}" == refs/tags/v* ]]; then
+            version="${GITHUB_REF#refs/tags/v}"
+          else
+            # Monotonic without committing a bump: the run number only ever
+            # increases, and npm refuses to republish a version that exists.
+            version="0.1.${GITHUB_RUN_NUMBER}"
+          fi
+          echo "version=${version}" >> "$GITHUB_OUTPUT"
+          echo "Publishing ${version}"
+
+      - name: build binaries
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          mkdir -p dist
+          for target in darwin/amd64 darwin/arm64 linux/amd64 linux/arm64 windows/amd64 windows/arm64; do
+            os="${target%%/*}"; arch="${target##*/}"
+            ext=""; [ "$os" = "windows" ] && ext=".exe"
+            GOOS="$os" GOARCH="$arch" go build -trimpath \
+              -ldflags "-s -w -X main.version=${VERSION}" \
+              -o "dist/dotfiles-installer-${os}-${arch}${ext}" ./cmd/dotfiles-installer
+          done
+          ls -la dist
+
+      - name: assemble npm packages
+        run: node npm/build.mjs --version "${{ steps.version.outputs.version }}" --dist dist --out dist-npm
+
+      # Platform packages go first. The CLI names them as optionalDependencies,
+      # and publishing it against versions that do not exist yet gives anyone
+      # installing in that window a package with no binary.
+      - name: publish platform packages
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          for dir in dist-npm/dotfiles-installer-*/; do
+            echo "publishing $dir"
+            npm publish "$dir" --access public --provenance
+          done
+
+      - name: publish CLI package
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: npm publish dist-npm/cli --access public --provenance
+
+      - name: summary
+        run: |
+          {
+            echo "### Published \`${{ steps.version.outputs.version }}\`"
+            echo
+            echo '```sh'
+            echo 'npx @alvaroofernaandez/dotfiles-installer'
+            echo '```'
+            echo
+            echo "Anyone running \`npx\` gets this build. Existing global installs are"
+            echo "notified by the binary and update with \`npm update -g\`."
+          } >> "$GITHUB_STEP_SUMMARY"

@@ -28,3 +28,4 @@ config/zsh/secrets.zsh
 # rebuilt on every push is pure weight.
 /bin/
 /dist/
+/dist-npm/

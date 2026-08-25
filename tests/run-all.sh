@@ -90,6 +90,35 @@ else
   printf '\033[33m%-22s SKIP (go toolchain not installed)\033[0m\n' "go"
 fi
 
+# --- the npm packaging -------------------------------------------------------
+# Same reasoning as the Go block: one command covers every test in the repo.
+# These check what actually gets published — the os/cpu fields are the entire
+# delivery mechanism, and getting them wrong ships six binaries to every machine.
+if command -v node >/dev/null 2>&1; then
+  npm_out="$(cd "$REPO" && node --test npm/cli/lib/*.test.js 2>&1)"
+  npm_rc=$?
+  # `node --test` reports "ℹ pass N" in its default reporter and "# pass N"
+  # under TAP. Both are matched so the count does not silently read as zero if
+  # the reporter changes between Node releases.
+  npm_pass="$(printf '%s\n' "$npm_out" | rg -o '^[ℹ#] pass (\d+)' -r '$1' | head -1)"
+  npm_fail="$(printf '%s\n' "$npm_out" | rg -o '^[ℹ#] fail (\d+)' -r '$1' | head -1)"
+  [[ "$npm_pass" =~ ^[0-9]+$ ]] || npm_pass=0
+  [[ "$npm_fail" =~ ^[0-9]+$ ]] || npm_fail=0
+
+  total_pass=$((total_pass + npm_pass))
+  total_fail=$((total_fail + npm_fail))
+
+  if [ "$npm_rc" -eq 0 ]; then
+    printf '\033[32m%-22s %d passed, 0 failed\033[0m\n' "npm-packaging" "$npm_pass"
+  else
+    printf '\033[31m%-22s %d passed, %d failed\033[0m\n' "npm-packaging" "$npm_pass" "$npm_fail"
+    printf '%s\n' "$npm_out" | rg '^not ok|^\s+error:' | head -10
+    failed_suites+=("npm-packaging")
+  fi
+else
+  printf '\033[33m%-22s SKIP (node not installed)\033[0m\n' "npm-packaging"
+fi
+
 printf '\n%d passed, %d failed' "$total_pass" "$total_fail"
 [ "${#failed_suites[@]}" -eq 0 ] || printf ' — failing: %s' "${failed_suites[*]}"
 printf '\n'

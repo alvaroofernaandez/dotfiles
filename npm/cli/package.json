@@ -1,0 +1,12 @@
+{
+  "name": "@alvaroofernaandez/dotfiles-installer",
+  "version": "0.0.0",
+  "type": "module",
+  "private": false,
+  "description": "Cross-platform installer for alvaroofernaandez's dotfiles — macOS, Linux and Windows",
+  "license": "MIT",
+  "repository": { "type": "git", "url": "git+https://github.com/alvaroofernaandez/dotfiles.git" },
+  "bin": { "dotfiles-installer": "bin/dotfiles-installer.js" },
+  "files": ["bin", "lib", "README.md"],
+  "engines": { "node": ">=18" }
+}

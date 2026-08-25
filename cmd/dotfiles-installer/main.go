@@ -18,6 +18,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
 
@@ -69,7 +70,31 @@ func run() error {
 		return runUpdate(repo, home, *dryRun, *forceCopy)
 	}
 
+	notifyIfOutdated()
+
 	return runInstall(repo, home, *dryRun, *yes, *forceCopy)
+}
+
+// notifyIfOutdated tells the user when a newer release exists.
+//
+// npm never pushes an update to an installed package, so a globally installed
+// copy stays on whatever version it was installed at until someone acts. This
+// is that prompt. It is rate-limited to once a day, opt-out-able via
+// DOTFILES_NO_UPDATE_CHECK, and silent on every failure — being offline must
+// not stop anyone installing their dotfiles.
+func notifyIfOutdated() {
+	if version == "dev" || !update.ShouldCheck(time.Now()) {
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	// Printed to stderr so it never contaminates the output of --dry-run when
+	// that is piped somewhere.
+	if notice := update.CheckLatest(ctx, version).String(); notice != "" {
+		fmt.Fprintf(os.Stderr, "\n%s\n\n", notice)
+	}
 }
 
 // resolveRepo finds the repository. The binary normally lives inside it, so
