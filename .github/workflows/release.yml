@@ -35,12 +35,21 @@ jobs:
       # The shell suite covers install.sh, the tmux scripts and the guards that
       # keep employer material and machine indexes out of the repo. It runs on
       # Linux here; the tmux suites need a tmux binary.
+      # run-all.sh parses each suite's summary with sd and rg. Without them the
+      # counts come back empty and passing suites are reported as failures —
+      # a silent, misleading break rather than an honest one.
       - name: install shell test dependencies
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y -qq tmux ripgrep
+          cargo install sd --quiet 2>/dev/null || {
+            curl -sSfL "https://github.com/chmln/sd/releases/latest/download/sd-v1.0.0-x86_64-unknown-linux-gnu.tar.gz" \
+              | tar xz -C /tmp --strip-components=1 --wildcards '*/sd'
+            sudo install -m755 /tmp/sd /usr/local/bin/sd
+          }
           curl -sSfL https://raw.githubusercontent.com/gitleaks/gitleaks/master/scripts/install.sh \
             | sh -s -- -b /usr/local/bin || echo "gitleaks unavailable; its suite will report it"
+          sd --version && rg --version | head -1
 
       - name: shell tests
         run: ./tests/run-all.sh

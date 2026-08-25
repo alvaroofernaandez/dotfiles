@@ -7,6 +7,22 @@ set -uo pipefail
 
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
+# Fail loudly on a missing tool rather than quietly miscounting.
+#
+# This runner parses each suite's summary with rg and sd. When one of them is
+# absent the parse yields an empty string, every count becomes 0, and suites
+# that actually passed are printed in red — which is how a CI run once reported
+# a broken test suite when the only thing missing was a binary.
+missing=()
+for tool in rg sd; do
+  command -v "$tool" >/dev/null 2>&1 || missing+=("$tool")
+done
+if [ "${#missing[@]}" -gt 0 ]; then
+  printf '\033[31mmissing required tools: %s\033[0m\n' "${missing[*]}" >&2
+  printf 'install them with: brew install %s\n' "${missing[*]}" >&2
+  exit 2
+fi
+
 SUITES=(
   "$REPO/tests/secrets.test.sh"
   "$REPO/tests/manifest.test.sh"
