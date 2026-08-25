@@ -19,6 +19,12 @@ jobs:
   test:
     name: test
     runs-on: ubuntu-latest
+    # Bounded because the tmux suites park `sleep 600` processes inside panes as
+    # stand-ins for long-running programs. If one of those outlives its server,
+    # the command substitution in run-all.sh waits on a pipe that never closes
+    # and the job sits there until GitHub's 6-hour default kills it. Failing in
+    # twelve minutes with a log beats burning an afternoon of runner time.
+    timeout-minutes: 12
     steps:
       - uses: actions/checkout@v4
 
@@ -67,7 +73,10 @@ jobs:
       - name: install the dotfiles
         run: ./install.sh
 
+      # Individually bounded as well as at the job level, so a hang is
+      # attributed to the suites rather than to whatever ran last.
       - name: shell tests
+        timeout-minutes: 8
         run: ./tests/run-all.sh
 
   build:
