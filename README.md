@@ -1,8 +1,9 @@
 <div align="center">
 
-# Álvaro´s Dotfiles
+<img src="docs/assets/hero.png" alt="Álvaro's Dotfiles" width="100%">
 
-### 🖥️ Entorno de terminal y agentes, con instalador multiplataforma
+<br/>
+<br/>
 
 Un flujo de trabajo completo sin salir de la terminal: **tmux**, **yazi** y **Ghostty**,
 más la configuración de **Claude Code** y **OpenCode**.<br/>
@@ -10,20 +11,21 @@ Cada pieza está documentada, y toda la lógica propia está cubierta por tests.
 
 <br/>
 
-![macOS](https://img.shields.io/badge/macOS-000000?logo=apple&logoColor=white&style=for-the-badge)
-![Linux](https://img.shields.io/badge/Linux-FCC624?logo=linux&logoColor=black&style=for-the-badge)
-![Windows](https://img.shields.io/badge/Windows-0078D4?logo=windows&logoColor=white&style=for-the-badge)
-![tmux](https://img.shields.io/badge/tmux-1BB91F?logo=tmux&logoColor=white&style=for-the-badge)
-![Yazi](https://img.shields.io/badge/Yazi-6366f1?style=for-the-badge)
-![Ghostty](https://img.shields.io/badge/Ghostty-2E2E2E?style=for-the-badge)
-![Zsh](https://img.shields.io/badge/Zsh-4EAA25?logo=gnubash&logoColor=white&style=for-the-badge)
-![Claude](https://img.shields.io/badge/Claude%20Code-D97757?logo=anthropic&logoColor=white&style=for-the-badge)
+![macOS](https://img.shields.io/badge/macOS-000000?logo=apple&logoColor=white&style=flat-square)
+![Linux](https://img.shields.io/badge/Linux-FCC624?logo=linux&logoColor=black&style=flat-square)
+![Windows](https://img.shields.io/badge/Windows-0078D4?logo=windows&logoColor=white&style=flat-square)
+&nbsp;&nbsp;
+![tests](https://img.shields.io/badge/tests-286%20passing-9ece6a?style=flat-square)
+![suites](https://img.shields.io/badge/suites-20-9ece6a?style=flat-square)
+![TDD](https://img.shields.io/badge/enfoque-TDD-bb9af7?style=flat-square)
+![gitleaks](https://img.shields.io/badge/gitleaks-0%20hallazgos-9ece6a?style=flat-square)
+[![npm](https://img.shields.io/npm/v/@alvaroofernaandez/dotfiles-installer?style=flat-square&color=7aa2f7&label=npm)](https://www.npmjs.com/package/@alvaroofernaandez/dotfiles-installer)
 
-![tests](https://img.shields.io/badge/tests-286%20passing-22c55e?style=flat-square)
-![suites](https://img.shields.io/badge/suites-20-22c55e?style=flat-square)
-![enfoque](https://img.shields.io/badge/enfoque-TDD-8b5cf6?style=flat-square)
-![secretos](https://img.shields.io/badge/gitleaks-0%20hallazgos-22c55e?style=flat-square)
-![visibilidad](https://img.shields.io/badge/visibilidad-privado-ef4444?style=flat-square)
+<br/>
+
+```sh
+npx @alvaroofernaandez/dotfiles-installer
+```
 
 <br/>
 
@@ -41,19 +43,16 @@ Cada pieza está documentada, y toda la lógica propia está cubierta por tests.
 
 ## 🎯 En una pantalla
 
-```
-┌────────────────────────────────────────────────────────────────────────────┐
-│ [FILES] main 1:zsh            CPU 18%  GPU 6%  RAM 9.1/16.0G  16:22  11 Aug│
-├──────────────────────┬─────────────────────────────────────────────────────┤
-│ ~/Proyectos/gdr      │ ~/Proyectos/gdr  on main                            │
-│  .agents             │ >                                                   │
-│  .github             │                                                     │
-│  src                 │         El árbol sigue tu directorio.               │
-│  .env                │         Cambias con cd o z, y se mueve solo.        │
-│  package.json        │                                                     │
-└──────────────────────┴─────────────────────────────────────────────────────┘
-   ↑ Alt+t lo abre y cierra          ↑ Enter abre el archivo en pestaña nueva
-```
+<div align="center">
+<img src="docs/assets/environment.png" alt="tmux con la barra lateral de yazi abierta junto al panel de trabajo, y la barra de estado con CPU, GPU, RAM, hora y fecha" width="100%">
+</div>
+
+<br/>
+
+A la izquierda, el árbol de **yazi**; a la derecha, tu shell. Arriba, la barra con
+CPU · GPU · RAM · hora · fecha, y el botón **`[FILES]`**, que es clicable.
+
+**El árbol sigue tu directorio**: cambias con `cd` o `z` y el panel se mueve solo.
 
 | Quiero… | Pulso |
 | :--- | :--- |
@@ -110,24 +109,11 @@ curl -fsSL https://raw.githubusercontent.com/alvaroofernaandez/dotfiles/main/scr
 Clona el repositorio, descarga el binario para tu plataforma y abre la **TUI de
 instalación**: detecta el sistema, muestra solo lo que aplica y deja elegir qué instalar.
 
-```
-  dotfiles installer
-  macOS (arm64)
-  symlinked — edits in the repo apply immediately
+<div align="center">
+<img src="docs/assets/installer.gif" alt="La TUI del instalador: selección de grupos, instalación y resumen" width="100%">
+</div>
 
-  What to install
-
-  ▸ [x] Terminal environment      9 items
-        tmux, yazi, Ghostty, zsh and Powerlevel10k
-    [x] Claude Code              10 items
-        Instructions, agents, commands, hooks, prompts and themes
-    [x] Agent skills             12 items
-        Shared skills, linked into every agent's skills directory
-
-  43 items selected
-
-  ↑/↓ move · space toggle · a all · n none · enter install · q quit
-```
+<br/>
 
 | | |
 | :--- | :--- |
@@ -135,6 +121,12 @@ instalación**: detecta el sistema, muestra solo lo que aplica y deja elegir qu�
 | **Personalizado por SO** | En Windows nativo se ofrecen los agentes IA y git; el entorno de terminal aparece en gris con el motivo, y se instala completo si detecta WSL |
 | **Enlaza o copia** | Symlink donde se puede; en Windows sin Developer Mode **copia**, porque lo comprueba en vez de suponerlo |
 | **Auto-actualizable** | `dotfiles-installer update` trae los cambios y enlaza lo nuevo |
+
+> [!NOTE]
+> El GIF es una instalación real grabada con [VHS](https://github.com/charmbracelet/vhs)
+> contra un `$HOME` desechable — por eso el resumen dice `linked 43` y no `would install`.
+> Se regenera con `vhs docs/installer-demo.tape`, igual que la captura de arriba con
+> `vhs docs/environment.tape` y el hero con `python3 docs/hero.py`.
 
 ### Actualizar
 
@@ -335,6 +327,11 @@ dotfiles/
 ├── 📁 npm/                    Empaquetado para npm
 │   ├── cli/                   Paquete principal: launcher + resolutor
 │   └── build.mjs              Arma los 7 paquetes desde los binarios
+│
+├── 📁 docs/                   Assets del README y sus generadores
+│   ├── hero.py                Suminagashi generativo (determinista)
+│   ├── installer-demo.tape    Grabación de la TUI (VHS)
+│   └── environment.tape       Captura de tmux + yazi (VHS)
 │
 ├── 📁 scripts/install.sh      Arranque de un comando (curl | sh)
 ├── 📋 install.manifest        Qué se instala y dónde — fuente única
