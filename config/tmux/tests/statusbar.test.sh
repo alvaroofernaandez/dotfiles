@@ -142,12 +142,25 @@ for _ in 1 2 3 4; do bash "$SCRIPT" >/dev/null 2>&1; done
 t1="$(now_ms)"
 cached=$((t1 - t0))
 
-assert_eq "extra bars are cheaper with the shared cache" "yes" \
-  "$([ "$cached" -lt "$uncached" ] && echo yes || echo "no (${cached}ms vs ${uncached}ms)")"
+# These two measure a saving that only exists where the work is expensive.
+#
+# On this Mac the bar queries GPU and memory through system calls that cost
+# real milliseconds, and the cache removes them. On a Linux CI runner those
+# queries do not exist, the whole script runs in ~23ms cached or not, and the
+# comparison comes out 23ms vs 23ms — a true statement about that machine, not
+# a regression. Skipped there rather than loosened here, because loosening the
+# threshold would stop it catching a real regression on the machine that cares.
+if [ -n "${CI:-}" ]; then
+  printf '  \033[33mSKIP\033[0m cache timing (no measurable work on a CI runner)\n'
+  printf '  \033[33mSKIP\033[0m cache saving threshold (no measurable work on a CI runner)\n'
+else
+  assert_eq "extra bars are cheaper with the shared cache" "yes" \
+    "$([ "$cached" -lt "$uncached" ] && echo yes || echo "no (${cached}ms vs ${uncached}ms)")"
 
-# The measured half must be genuinely skipped, not merely faster by noise.
-assert_eq "the cache removes at least a third of the cost" "yes" \
-  "$([ "$cached" -lt $(( uncached * 2 / 3 )) ] && echo yes || echo "no (${cached}ms vs ${uncached}ms)")"
+  # The measured half must be genuinely skipped, not merely faster by noise.
+  assert_eq "the cache removes at least a third of the cost" "yes" \
+    "$([ "$cached" -lt $(( uncached * 2 / 3 )) ] && echo yes || echo "no (${cached}ms vs ${uncached}ms)")"
+fi
 
 assert_eq "the cache file is created" "yes" \
   "$([ -s "$cache_dir/cache" ] && echo yes || echo no)"

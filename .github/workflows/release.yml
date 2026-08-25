@@ -49,19 +49,29 @@ jobs:
       # gitleaks is installed with `go install` rather than its upstream shell
       # script, which returns 404. The Go toolchain is already here for the
       # build, so this adds no dependency of its own.
+      # zsh and yazi are what the suites actually exercise, not optional extras:
+      # without them the zsh syntax check exits 127 and every sidebar test finds
+      # an empty pane, which reads as a broken sidebar rather than a missing
+      # program.
       - name: install shell test dependencies
         run: |
           sudo apt-get update -qq
-          sudo apt-get install -y -qq tmux ripgrep
+          sudo apt-get install -y -qq tmux ripgrep zsh
           cargo install sd --quiet
           go install github.com/zricethezav/gitleaks/v8@latest
           echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
+
+          # yazi ships prebuilt; building it from source here would add minutes.
+          yazi_url="https://github.com/sxyazi/yazi/releases/latest/download/yazi-x86_64-unknown-linux-gnu.zip"
+          curl -fsSL "$yazi_url" -o /tmp/yazi.zip
+          unzip -q -o /tmp/yazi.zip -d /tmp/yazi
+          sudo install -m755 "$(find /tmp/yazi -name yazi -type f | head -1)" /usr/local/bin/yazi
 
       - name: verify the toolchain is complete
         run: |
           # Checked explicitly: every one of these missing has already caused a
           # run that blamed the tests for a missing binary.
-          for tool in tmux rg sd gitleaks; do
+          for tool in tmux rg sd gitleaks zsh yazi; do
             command -v "$tool" >/dev/null || { echo "missing: $tool"; exit 1; }
             echo "$tool: $(command -v "$tool")"
           done
