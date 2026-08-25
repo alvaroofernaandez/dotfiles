@@ -20,72 +20,61 @@ for arg in "$@"; do
   esac
 done
 
-# source-relative-to-repo : destination-relative-to-HOME
+# What gets linked lives in install.manifest, not here. The cross-platform
+# installer reads the same file, and a second copy of the list would diverge the
+# first time an entry was added to one and not the other — silently, because a
+# missing entry just means the config never gets linked.
 #
-# Agent config directories are linked PER PATH, never wholesale: ~/.claude also
-# holds .credentials.json and gigabytes of session history, and
-# ~/.config/opencode holds node_modules. Linking either one entirely would
-# displace all of it.
-LINKS=(
-  # --- terminal ---
-  "config/tmux:.config/tmux"
-  "config/yazi:.config/yazi"
-  "config/yazi-sidebar:.config/yazi-sidebar"
-  "config/ghostty:.config/ghostty"
-  "home/tmux.conf:.tmux.conf"
-  "home/zshrc:.zshrc"
-  "home/zprofile:.zprofile"
-  "home/gitconfig:.gitconfig"
-  "home/p10k.zsh:.p10k.zsh"
+# tests/manifest.test.sh fails if this script and the manifest ever disagree.
+MANIFEST="${MANIFEST:-$REPO_ROOT/install.manifest}"
 
-  # --- terminal tools ---
-  # bat, zoxide, fzf and eza have no config files of their own: their setup
-  # lives in .zshrc above.
-  "config/atuin/config.toml:.config/atuin/config.toml"
-  "config/gh/config.yml:.config/gh/config.yml"
-  "config/git/ignore:.config/git/ignore"
+if [ ! -f "$MANIFEST" ]; then
+  echo "install: manifest not found: $MANIFEST" >&2
+  exit 1
+fi
 
-  # --- claude code ---
-  "config/claude/CLAUDE.md:.claude/CLAUDE.md"
-  "config/claude/RTK.md:.claude/RTK.md"
-  "config/claude/sdd-orchestrator.md:.claude/sdd-orchestrator.md"
-  "config/claude/MCP-PER-PROJECT.md:.claude/MCP-PER-PROJECT.md"
-  "config/claude/settings.json:.claude/settings.json"
-  "config/claude/agents:.claude/agents"
-  "config/claude/commands:.claude/commands"
-  "config/claude/hooks:.claude/hooks"
-  "config/claude/prompts:.claude/prompts"
-  "config/claude/themes:.claude/themes"
+LINKS=()
+fanout_source=""
+fanout_dests=""
 
-  # --- opencode ---
-  "config/opencode/opencode.json:.config/opencode/opencode.json"
-  "config/opencode/AGENTS.md:.config/opencode/AGENTS.md"
-  "config/opencode/package.json:.config/opencode/package.json"
-  "config/opencode/agents:.config/opencode/agents"
-  "config/opencode/commands:.config/opencode/commands"
-  "config/opencode/plugin:.config/opencode/plugin"
-  "config/opencode/plugins:.config/opencode/plugins"
-  "config/opencode/profiles:.config/opencode/profiles"
-  "config/opencode/prompts:.config/opencode/prompts"
-)
+# Section headers and group metadata are read but not acted on here: install.sh
+# installs every group. Platform filtering is the TUI's job, since this script
+# only ever runs on Unix.
+while IFS= read -r line; do
+  line="${line%%#*}"                       # strip comments
+  line="${line#"${line%%[![:space:]]*}"}"  # trim leading space
+  line="${line%"${line##*[![:space:]]}"}"  # trim trailing space
+  [ -n "$line" ] || continue
 
-# Skills are tool-agnostic, so each one is linked into every agent's skills
-# directory — but ONE BY ONE, never by linking the directory itself. Those
-# directories also hold marketplace skills this repo does not version, and
-# replacing a directory with a link would take all of them out of service.
-#
-# Commands and agents are deliberately not shared this way: OpenCode's carry
-# their own frontmatter (agent:, subtask:) and tool-specific paths, so each tool
-# keeps its own copy above.
-SKILL_DIRS=(".claude/skills" ".config/opencode/skills" ".opencode/skills")
+  case "$line" in
+    \[*\]) continue ;;
+    fanout-source*=*) fanout_source="${line#*=}"; fanout_source="${fanout_source## }" ;;
+    fanout-dests*=*)  fanout_dests="${line#*=}" ;;
+    *=*) continue ;;                       # label / detail / platforms
+    *)
+      src="${line%%[[:space:]]*}"
+      dest="${line##*[[:space:]]}"
+      [ "$src" != "$dest" ] && LINKS+=("$src:$dest")
+      ;;
+  esac
+done < "$MANIFEST"
 
-for skill_path in "$REPO_ROOT"/shared/skills/*/; do
-  [ -d "$skill_path" ] || continue
-  skill="$(basename "$skill_path")"
-  for skill_dir in "${SKILL_DIRS[@]}"; do
-    LINKS+=("shared/skills/$skill:$skill_dir/$skill")
+# The fan-out is expanded here rather than listed, so adding a skill directory
+# needs no manifest edit at all.
+if [ -n "$fanout_source" ]; then
+  for skill_path in "$REPO_ROOT/$fanout_source"/*/; do
+    [ -d "$skill_path" ] || continue
+    skill="$(basename "$skill_path")"
+    for skill_dir in $fanout_dests; do
+      LINKS+=("$fanout_source/$skill:$skill_dir/$skill")
+    done
   done
-done
+fi
+
+if [ "${#LINKS[@]}" -eq 0 ]; then
+  echo "install: manifest declared no entries: $MANIFEST" >&2
+  exit 1
+fi
 
 stamp="$(date +%Y%m%d%H%M%S)"
 

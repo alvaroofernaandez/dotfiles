@@ -1,0 +1,96 @@
+# Single source of truth for what gets installed and where.
+#
+# Two installers read this file: install.sh (Unix) and the cross-platform TUI
+# under cmd/dotfiles-installer. Keeping the list in one place is the whole
+# point — a second copy diverges the first time an entry is added to one and
+# not the other, and the failure is silent: the config just never gets linked.
+# tests/manifest.test.sh fails the build if the two ever disagree.
+#
+# Format
+# ------
+# Section header      [<id>]
+#   label     = human-readable name, shown by the TUI
+#   detail    = one line describing what the group is
+#   platforms = unix  -> macOS and Linux only (and Windows via WSL)
+#               all   -> also Windows natively
+#
+# Entries             <source relative to repo>   <destination relative to $HOME>
+#
+# Agent config directories are listed PER PATH, never wholesale: ~/.claude also
+# holds .credentials.json and gigabytes of session history, and
+# ~/.config/opencode holds node_modules. Linking either one entirely would
+# displace all of it.
+
+[terminal]
+label = Terminal environment
+detail = tmux, yazi, Ghostty, zsh and Powerlevel10k
+platforms = unix
+
+config/tmux                        .config/tmux
+config/yazi                        .config/yazi
+config/yazi-sidebar                .config/yazi-sidebar
+config/ghostty                     .config/ghostty
+home/tmux.conf                     .tmux.conf
+home/zshrc                         .zshrc
+home/zprofile                      .zprofile
+home/p10k.zsh                      .p10k.zsh
+
+# bat, zoxide, fzf and eza have no config files of their own: their setup lives
+# in .zshrc above.
+config/atuin/config.toml           .config/atuin/config.toml
+
+[git]
+label = Git and GitHub CLI
+detail = Global gitconfig, ignore rules and gh settings
+platforms = all
+
+home/gitconfig                     .gitconfig
+config/gh/config.yml               .config/gh/config.yml
+config/git/ignore                  .config/git/ignore
+
+[claude]
+label = Claude Code
+detail = Instructions, agents, commands, hooks, prompts and themes
+platforms = all
+
+config/claude/CLAUDE.md            .claude/CLAUDE.md
+config/claude/RTK.md               .claude/RTK.md
+config/claude/sdd-orchestrator.md  .claude/sdd-orchestrator.md
+config/claude/MCP-PER-PROJECT.md   .claude/MCP-PER-PROJECT.md
+config/claude/settings.json        .claude/settings.json
+config/claude/agents               .claude/agents
+config/claude/commands             .claude/commands
+config/claude/hooks                .claude/hooks
+config/claude/prompts              .claude/prompts
+config/claude/themes               .claude/themes
+
+[opencode]
+label = OpenCode
+detail = Config, agents, commands, plugins, profiles and prompts
+platforms = all
+
+config/opencode/opencode.json      .config/opencode/opencode.json
+config/opencode/AGENTS.md          .config/opencode/AGENTS.md
+config/opencode/package.json       .config/opencode/package.json
+config/opencode/agents             .config/opencode/agents
+config/opencode/commands           .config/opencode/commands
+config/opencode/plugin             .config/opencode/plugin
+config/opencode/plugins            .config/opencode/plugins
+config/opencode/profiles           .config/opencode/profiles
+config/opencode/prompts            .config/opencode/prompts
+
+[skills]
+label = Agent skills
+detail = Shared skills, linked into every agent's skills directory
+platforms = all
+
+# Skills are tool-agnostic, so each one goes into every agent's skills
+# directory — but ONE BY ONE, never by linking the directory itself. Those
+# directories also hold marketplace skills this repo does not version, and
+# replacing a directory with a link would take all of them out of service.
+#
+# Commands and agents are deliberately not shared this way: OpenCode's carry
+# their own frontmatter (agent:, subtask:) and tool-specific paths, so each
+# tool keeps its own copy above.
+fanout-source = shared/skills
+fanout-dests = .claude/skills .config/opencode/skills .opencode/skills

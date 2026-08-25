@@ -2,7 +2,7 @@
 
 # Álvaro´s Dotfiles
 
-### 🖥️ Entorno de terminal y agentes en macOS
+### 🖥️ Entorno de terminal y agentes, con instalador multiplataforma
 
 Un flujo de trabajo completo sin salir de la terminal: **tmux**, **yazi** y **Ghostty**,
 más la configuración de **Claude Code** y **OpenCode**.<br/>
@@ -11,14 +11,16 @@ Cada pieza está documentada, y toda la lógica propia está cubierta por tests.
 <br/>
 
 ![macOS](https://img.shields.io/badge/macOS-000000?logo=apple&logoColor=white&style=for-the-badge)
+![Linux](https://img.shields.io/badge/Linux-FCC624?logo=linux&logoColor=black&style=for-the-badge)
+![Windows](https://img.shields.io/badge/Windows-0078D4?logo=windows&logoColor=white&style=for-the-badge)
 ![tmux](https://img.shields.io/badge/tmux-1BB91F?logo=tmux&logoColor=white&style=for-the-badge)
 ![Yazi](https://img.shields.io/badge/Yazi-6366f1?style=for-the-badge)
 ![Ghostty](https://img.shields.io/badge/Ghostty-2E2E2E?style=for-the-badge)
 ![Zsh](https://img.shields.io/badge/Zsh-4EAA25?logo=gnubash&logoColor=white&style=for-the-badge)
 ![Claude](https://img.shields.io/badge/Claude%20Code-D97757?logo=anthropic&logoColor=white&style=for-the-badge)
 
-![tests](https://img.shields.io/badge/tests-232%20passing-22c55e?style=flat-square)
-![suites](https://img.shields.io/badge/suites-17-22c55e?style=flat-square)
+![tests](https://img.shields.io/badge/tests-273%20passing-22c55e?style=flat-square)
+![suites](https://img.shields.io/badge/suites-19-22c55e?style=flat-square)
 ![enfoque](https://img.shields.io/badge/enfoque-TDD-8b5cf6?style=flat-square)
 ![secretos](https://img.shields.io/badge/gitleaks-0%20hallazgos-22c55e?style=flat-square)
 ![visibilidad](https://img.shields.io/badge/visibilidad-privado-ef4444?style=flat-square)
@@ -65,6 +67,57 @@ Cada pieza está documentada, y toda la lógica propia está cubierta por tests.
 
 ## ⚡ Instalación
 
+### Un comando (macOS · Linux · Windows)
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/alvaroofernaandez/dotfiles/main/scripts/install.sh | sh
+```
+
+Clona el repositorio, descarga el binario para tu plataforma y abre la **TUI de
+instalación**: detecta el sistema, muestra solo lo que aplica y deja elegir qué instalar.
+
+```
+  dotfiles installer
+  macOS (arm64)
+  symlinked — edits in the repo apply immediately
+
+  What to install
+
+  ▸ [x] Terminal environment      9 items
+        tmux, yazi, Ghostty, zsh and Powerlevel10k
+    [x] Claude Code              10 items
+        Instructions, agents, commands, hooks, prompts and themes
+    [x] Agent skills             12 items
+        Shared skills, linked into every agent's skills directory
+
+  43 items selected
+
+  ↑/↓ move · space toggle · a all · n none · enter install · q quit
+```
+
+| | |
+| :--- | :--- |
+| **Tema** | Tokyo Night, la misma paleta que el resto del entorno |
+| **Personalizado por SO** | En Windows nativo se ofrecen los agentes IA y git; el entorno de terminal aparece en gris con el motivo, y se instala completo si detecta WSL |
+| **Enlaza o copia** | Symlink donde se puede; en Windows sin Developer Mode **copia**, porque lo comprueba en vez de suponerlo |
+| **Auto-actualizable** | `dotfiles-installer update` trae los cambios y enlaza lo nuevo |
+
+### Actualizar
+
+```sh
+dotfiles-installer update
+```
+
+Como los configs son **symlinks al repo**, el `git pull` ya actualiza todo lo enlazado.
+El re-enlazado posterior solo existe para lo que aún no tiene enlace: entradas nuevas del
+manifiesto y skills recién añadidas. Es idempotente.
+
+> [!TIP]
+> Cada push a `main` republica los binarios de las 6 plataformas vía GitHub Actions, así
+> que `update` y el script de arranque recogen los cambios sin tener que etiquetar versiones.
+
+### Sin binario: el instalador de siempre
+
 ```bash
 git clone git@github.com:alvaroofernaandez/dotfiles.git ~/dotfiles
 cd ~/dotfiles
@@ -72,6 +125,9 @@ cd ~/dotfiles
 ./install.sh --dry-run   # 👀 muestra qué haría, sin tocar nada
 ./install.sh             # 🔗 enlaza de verdad
 ```
+
+Ambos instaladores leen **el mismo `install.manifest`**, y un test falla si alguna vez
+dejan de coincidir. No hay dos listas que mantener sincronizadas.
 
 > [!IMPORTANT]
 > **`install.sh` nunca borra nada.** Si ya tienes configuración en el destino, la mueve a
@@ -202,9 +258,27 @@ dotfiles/
 │   └── 🔧 atuin, gh, git/     Herramientas con fichero de configuración propio
 │
 ├── 📁 home/                   tmux.conf, zshrc, zprofile, gitconfig, p10k.zsh
-├── ⚙️  install.sh              Enlaza con backup, nunca borra
-└── 🧪 tests/                  7 suites transversales
+│
+├── 📁 cmd/dotfiles-installer/ TUI multiplataforma (Go + Bubbletea)
+├── 📁 internal/
+│   ├── manifest/              Lee install.manifest
+│   ├── platform/              Detecta SO, WSL y si hay symlinks
+│   ├── plan/                  Manifiesto + plataforma → acciones (puro)
+│   ├── install/               Ejecuta: enlaza o copia, siempre con backup
+│   ├── ui/                    Tema Tokyo Night y las tres pantallas
+│   └── update/                git pull + re-enlazado idempotente
+│
+├── 📁 scripts/install.sh      Arranque de un comando (curl | sh)
+├── 📋 install.manifest        Qué se instala y dónde — fuente única
+├── ⚙️  install.sh              Instalador shell: lee el mismo manifiesto
+└── 🧪 tests/                  9 suites transversales
 ```
+
+> [!IMPORTANT]
+> **`install.manifest` es la fuente única.** Los dos instaladores lo leen; ninguno lleva
+> su propia lista. `tests/manifest.test.sh` compila el binario y compara sus destinos con
+> los de `install.sh`, así que una divergencia rompe el build en vez de producir dos
+> máquinas configuradas distinto.
 
 ---
 
@@ -663,20 +737,32 @@ escaneo informó «sin credenciales».
 ```
 
 ```
-secrets                 5 passed        keybindings            10 passed
-zshrc-secrets          14 passed        sidebar-button         10 passed
-shell-hygiene          11 passed        close-file              8 passed
-install                39 passed        sidebar-follow         11 passed
-launch                 17 passed        sidebar-watch           6 passed
-sidebar-toggle         21 passed        statusbar              29 passed
-open-file              17 passed        status-style            7 passed
+secrets                 5 passed        keybindings            11 passed
+manifest               10 passed        sidebar-button         10 passed
+no-proprietary         10 passed        close-file              8 passed
+zshrc-secrets          14 passed        sidebar-follow         11 passed
+shell-hygiene          11 passed        sidebar-watch           7 passed
+install                40 passed        statusbar              33 passed
+launch                 17 passed        status-style            7 passed
+ghostty-keys           13 passed        paste-router           12 passed
+sidebar-toggle         21 passed        go                6 packages passed
+open-file              17 passed
 yazi-sidebar-config    10 passed
 
-215 passed, 0 failed
+273 passed, 0 failed
 ```
+
+Una sola orden cubre **shell y Go**: si el toolchain de Go está presente, `run-all.sh`
+ejecuta también `go test ./...` y lo suma al total. Si no lo está, lo salta sin fallar —
+`install.sh` es el instalador que debe funcionar en cualquier parte, y solo necesita bash.
 
 Cada suite levanta su **propio servidor de tmux aislado** (`tmux -L`) y, en el caso de
 `install`, un `$HOME` desechable. Ninguna toca tu sesión ni tu configuración real.
+
+> [!NOTE]
+> Los tests de Go usan `t.TempDir()` para el repo y para `$HOME`, así que tampoco tocan
+> nada real. `manifest` es el que impide que los dos instaladores diverjan: compila el
+> binario y compara sus 43 destinos con los de `install.sh`.
 
 > [!NOTE]
 > Las suites de tmux y yazi comprueban la configuración **instalada** en `~/.config`, así

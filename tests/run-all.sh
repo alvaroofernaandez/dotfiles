@@ -9,6 +9,7 @@ REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 SUITES=(
   "$REPO/tests/secrets.test.sh"
+  "$REPO/tests/manifest.test.sh"
   "$REPO/tests/no-proprietary.test.sh"
   "$REPO/tests/zshrc-secrets.test.sh"
   "$REPO/tests/shell-hygiene.test.sh"
@@ -59,6 +60,35 @@ for suite in "${SUITES[@]}"; do
     failed_suites+=("$name")
   fi
 done
+
+# --- the Go installer --------------------------------------------------------
+# Counted in the same total as the shell suites, so "everything green" means
+# every test in the repository rather than only the ones written in bash.
+#
+# A missing toolchain is a skip, not a failure: install.sh is the installer that
+# has to work everywhere, and it needs nothing but bash.
+if command -v go >/dev/null 2>&1; then
+  go_out="$(cd "$REPO" && go test ./... 2>&1)"
+  go_rc=$?
+  # `go test` reports per package, not per assertion. Counting packages keeps
+  # the total honest rather than inventing an assertion count.
+  go_pkgs="$(printf '%s\n' "$go_out" | rg -c '^(ok|FAIL|---)' || echo 0)"
+  go_fail="$(printf '%s\n' "$go_out" | rg -c '^(FAIL|--- FAIL)' || echo 0)"
+  go_pass=$((go_pkgs - go_fail))
+
+  total_pass=$((total_pass + go_pass))
+  total_fail=$((total_fail + go_fail))
+
+  if [ "$go_rc" -eq 0 ]; then
+    printf '\033[32m%-22s %d package(s) passed, 0 failed\033[0m\n' "go" "$go_pass"
+  else
+    printf '\033[31m%-22s %d package(s) passed, %d failed\033[0m\n' "go" "$go_pass" "$go_fail"
+    printf '%s\n' "$go_out" | rg '^(FAIL|--- FAIL|\s+\S+_test\.go)' | head -20
+    failed_suites+=("go")
+  fi
+else
+  printf '\033[33m%-22s SKIP (go toolchain not installed)\033[0m\n' "go"
+fi
 
 printf '\n%d passed, %d failed' "$total_pass" "$total_fail"
 [ "${#failed_suites[@]}" -eq 0 ] || printf ' — failing: %s' "${failed_suites[*]}"

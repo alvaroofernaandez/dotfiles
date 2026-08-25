@@ -1,0 +1,131 @@
+# Builds the installer for every supported platform and publishes it.
+#
+# This is what makes the installer self-updating in practice: every push to
+# main republishes the "latest" release, so `dotfiles-installer update` and the
+# bootstrap script both pick up changes without anyone cutting a version by
+# hand. Tagged pushes additionally produce a permanent, versioned release.
+name: release
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  test:
+    name: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.25"
+
+      - name: go vet
+        run: go vet ./...
+
+      - name: go test
+        run: go test ./... -race
+
+      # The shell suite covers install.sh, the tmux scripts and the guards that
+      # keep employer material and machine indexes out of the repo. It runs on
+      # Linux here; the tmux suites need a tmux binary.
+      - name: install shell test dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq tmux ripgrep
+          curl -sSfL https://raw.githubusercontent.com/gitleaks/gitleaks/master/scripts/install.sh \
+            | sh -s -- -b /usr/local/bin || echo "gitleaks unavailable; its suite will report it"
+
+      - name: shell tests
+        run: ./tests/run-all.sh
+
+  build:
+    name: build ${{ matrix.os }}/${{ matrix.arch }}
+    needs: test
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { os: darwin, arch: amd64 }
+          - { os: darwin, arch: arm64 }
+          - { os: linux, arch: amd64 }
+          - { os: linux, arch: arm64 }
+          - { os: windows, arch: amd64, ext: ".exe" }
+          - { os: windows, arch: arm64, ext: ".exe" }
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # git describe needs the tags
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.25"
+
+      - name: build
+        env:
+          GOOS: ${{ matrix.os }}
+          GOARCH: ${{ matrix.arch }}
+        run: |
+          version="$(git describe --tags --always --dirty 2>/dev/null || echo dev)"
+          # -trimpath keeps absolute build paths out of the binary; -s -w drops
+          # the symbol table, which roughly halves the download.
+          go build -trimpath \
+            -ldflags "-s -w -X main.version=${version}" \
+            -o "dist/dotfiles-installer-${{ matrix.os }}-${{ matrix.arch }}${{ matrix.ext }}" \
+            ./cmd/dotfiles-installer
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dotfiles-installer-${{ matrix.os }}-${{ matrix.arch }}
+          path: dist/*
+
+  publish:
+    name: publish
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+
+      - name: checksums
+        run: |
+          cd dist
+          sha256sum dotfiles-installer-* > SHA256SUMS
+          cat SHA256SUMS
+
+      # A rolling "latest" tag is what the bootstrap script and `update` point
+      # at, so every push to main is immediately installable.
+      - name: publish rolling latest
+        if: startsWith(github.ref, 'refs/tags/') == false
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: latest
+          name: Latest build
+          body: |
+            Rolling build from `main` (${{ github.sha }}).
+
+            Install or update:
+
+            ```sh
+            curl -fsSL https://raw.githubusercontent.com/${{ github.repository }}/main/scripts/install.sh | sh
+            ```
+          prerelease: true
+          files: dist/*
+
+      - name: publish tagged release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          files: dist/*

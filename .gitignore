@@ -22,3 +22,9 @@ config/zsh/secrets.zsh
 # refresh. Sanitising it once does not hold: the next refresh puts the material back.
 # It stays local; the orchestrator reads it from disk, not from git.
 .atl/
+
+# Installer binaries. Built from source or downloaded per platform, never
+# committed: a 3 MB binary per platform in git history for something that is
+# rebuilt on every push is pure weight.
+/bin/
+/dist/
