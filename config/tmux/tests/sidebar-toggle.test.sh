@@ -8,6 +8,14 @@ SOCKET="sidebar-test-$$"
 TMUX_TEST=(tmux -L "$SOCKET")
 WORKDIR="$(mktemp -d)"
 
+# Run these tests inside tmux — which is how they are actually run — and the
+# developer's own TMUX_PANE leaks into every invocation of the script. The
+# script honours it, so it resolves a pane id belonging to the REAL server
+# while talking to the isolated one, and every assertion about panes fails
+# with "can't find pane". Each case that needs a target sets TMUX_PANE
+# explicitly; the rest must fall back to the test server's active window.
+unset TMUX TMUX_PANE
+
 pass=0
 fail=0
 
