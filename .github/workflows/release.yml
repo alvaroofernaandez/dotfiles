@@ -62,10 +62,21 @@ jobs:
           echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
 
           # yazi ships prebuilt; building it from source here would add minutes.
+          # `ya` comes along because newer yazi moved its config introspection
+          # there, and the sidebar suite asks for it.
           yazi_url="https://github.com/sxyazi/yazi/releases/latest/download/yazi-x86_64-unknown-linux-gnu.zip"
           curl -fsSL "$yazi_url" -o /tmp/yazi.zip
           unzip -q -o /tmp/yazi.zip -d /tmp/yazi
           sudo install -m755 "$(find /tmp/yazi -name yazi -type f | head -1)" /usr/local/bin/yazi
+          ya_bin="$(find /tmp/yazi -name ya -type f | head -1)"
+          [ -n "$ya_bin" ] && sudo install -m755 "$ya_bin" /usr/local/bin/ya
+
+          # The statusbar suite asserts that the bar renders identically under a
+          # Spanish locale, where awk would otherwise emit a comma decimal
+          # separator. An ungenerated locale silently falls back to C, so the
+          # test compares C against C and the assertion means nothing.
+          sudo locale-gen es_ES.UTF-8
+          sudo update-locale
 
       - name: verify the toolchain is complete
         run: |

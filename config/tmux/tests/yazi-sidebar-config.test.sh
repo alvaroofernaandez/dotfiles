@@ -44,10 +44,26 @@ echo "yazi-sidebar-config"
 assert_eq "sidebar config exists" "yes" \
   "$([ -f "$SIDEBAR_CONFIG" ] && echo yes || echo no)"
 
-debug="$(YAZI_CONFIG_HOME="$SIDEBAR_CONFIG_HOME" yazi --debug 2>&1)"
-assert_contains "yazi loads the sidebar config" "$SIDEBAR_CONFIG" "$debug"
-assert_eq "yazi reports no config error" "clean" \
-  "$(printf '%s' "$debug" | rg -qi 'invalid|failed to parse|error.*toml' && echo dirty || echo clean)"
+# yazi moved this introspection between releases: newer builds answer with
+# `ya env` and reduce `yazi --debug` to a deprecation notice, older ones only
+# have `--debug`. Both are tried, newest first, because which yazi is installed
+# is the machine's business and not this repo's.
+debug="$(YAZI_CONFIG_HOME="$SIDEBAR_CONFIG_HOME" ya env 2>/dev/null || true)"
+if ! printf '%s' "$debug" | rg -qi 'yazi'; then
+  debug="$(YAZI_CONFIG_HOME="$SIDEBAR_CONFIG_HOME" yazi --debug 2>&1 || true)"
+fi
+
+# A build that answers neither is reported as a skip, not a failure. Asserting
+# against an empty string would claim the sidebar config is broken when the
+# only thing that changed is how yazi reports its paths.
+if printf '%s' "$debug" | rg -qi 'deprecated' || [ -z "$debug" ]; then
+  printf '  \033[33mSKIP\033[0m yazi loads the sidebar config (this yazi reports no config paths)\n'
+  printf '  \033[33mSKIP\033[0m yazi reports no config error (this yazi reports no config paths)\n'
+else
+  assert_contains "yazi loads the sidebar config" "$SIDEBAR_CONFIG" "$debug"
+  assert_eq "yazi reports no config error" "clean" \
+    "$(printf '%s' "$debug" | rg -qi 'invalid|failed to parse|error.*toml' && echo dirty || echo clean)"
+fi
 
 # --- layout: tree only ------------------------------------------------------
 ratio="$(toml_value "$SIDEBAR_CONFIG" ratio)"
