@@ -60,7 +60,42 @@ for suite in "${SUITES[@]}"; do
     continue
   fi
 
-  summary="$("$suite" 2>&1 | tail -1)"
+  # Output goes to a file, never through a pipe into $( ).
+  #
+  # A command substitution waits for the pipe to close, not for the process to
+  # exit. The tmux suites start a server that inherits stdout and outlives the
+  # test that spawned it, so the pipe stayed open and this loop hung — for 30
+  # minutes on CI, until the job was cancelled by hand. It never reproduced
+  # locally, where a tmux server is usually already running and no new one
+  # inherits these descriptors.
+  #
+  # Redirecting to a file waits only on the suite itself; a lingering grandchild
+  # holding the file descriptor cannot block the read.
+  out="$(mktemp)"
+
+  # stdin is closed too: a suite that reads from it would otherwise wait
+  # forever on a runner with no terminal attached.
+  if command -v timeout >/dev/null 2>&1; then
+    timeout "${SUITE_TIMEOUT:-300}" "$suite" </dev/null >"$out" 2>&1
+    suite_rc=$?
+  else
+    "$suite" </dev/null >"$out" 2>&1
+    suite_rc=$?
+  fi
+
+  summary="$(tail -1 "$out")"
+
+  # 124 is timeout(1)'s signal that it killed the suite. Reported explicitly:
+  # a hang that shows up as "0 passed" reads like a broken test rather than a
+  # suite that never finished.
+  if [ "$suite_rc" -eq 124 ]; then
+    printf '\033[31m%-22s TIMEOUT after %ss\033[0m\n' "$name" "${SUITE_TIMEOUT:-300}"
+    rg -n 'FAIL' "$out" | tail -3
+    failed_suites+=("$name")
+    total_fail=$((total_fail + 1))
+    rm -f "$out"
+    continue
+  fi
   p="$(printf '%s' "$summary" | sd '^(\d+) passed.*' '$1')"
   f="$(printf '%s' "$summary" | sd '.*, (\d+) failed.*' '$1')"
   [[ "$p" =~ ^[0-9]+$ ]] || p=0
@@ -73,8 +108,13 @@ for suite in "${SUITES[@]}"; do
     printf '\033[32m%-22s %s\033[0m\n' "$name" "$summary"
   else
     printf '\033[31m%-22s %s\033[0m\n' "$name" "$summary"
+    # Which assertion failed, not just how many. A runner that reports a count
+    # and nothing else sends you off to re-run the suite by hand to find out
+    # what broke — and an intermittent failure may not reproduce when you do.
+    rg -A2 'FAIL' "$out" 2>/dev/null | head -12 | sd '^' '      '
     failed_suites+=("$name")
   fi
+  rm -f "$out"
 done
 
 # --- the Go installer --------------------------------------------------------
