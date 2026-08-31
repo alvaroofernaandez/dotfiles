@@ -15,7 +15,7 @@ Cada pieza está documentada, y toda la lógica propia está cubierta por tests.
 ![Linux](https://img.shields.io/badge/Linux-FCC624?logo=linux&logoColor=black&style=flat-square)
 ![Windows](https://img.shields.io/badge/Windows-0078D4?logo=windows&logoColor=white&style=flat-square)
 &nbsp;&nbsp;
-![tests](https://img.shields.io/badge/tests-286%20passing-9ece6a?style=flat-square)
+![tests](https://img.shields.io/badge/tests-353%20passing-9ece6a?style=flat-square)
 ![suites](https://img.shields.io/badge/suites-20-9ece6a?style=flat-square)
 ![TDD](https://img.shields.io/badge/enfoque-TDD-bb9af7?style=flat-square)
 ![gitleaks](https://img.shields.io/badge/gitleaks-0%20hallazgos-9ece6a?style=flat-square)
@@ -213,9 +213,10 @@ Los backups viven fuera de cualquier árbol escaneado, y hay un test que lo veri
 | `config/ghostty` | `~/.config/ghostty` | Terminal: tema, tipografía, arranque |
 | `home/*` | `~/.tmux.conf`, `~/.zshrc`, `~/.zprofile`, `~/.gitconfig`, `~/.p10k.zsh` | Configuración de shell y git |
 | `config/atuin`, `gh`, `git` | `~/.config/...` | Herramientas con fichero propio |
-| `shared/skills` | 3 destinos a la vez | Skills propias, compartidas entre agentes |
+| `shared/skills` | 3 destinos a la vez | Skills propias y las adoptadas de gstack |
 | `config/claude/*` | `~/.claude/*` | Claude Code, **ruta por ruta** |
 | `config/opencode/*` | `~/.config/opencode/*` | OpenCode, **ruta por ruta** |
+| `third_party/gstack` | `~/.gstack` | Runtime de gstack. Lo crea `gstack-sync.sh`, **no** el manifiesto |
 
 > [!WARNING]
 > **Los directorios de agentes se enlazan ruta por ruta, nunca completos.**
@@ -285,6 +286,18 @@ nada.
 brew install tmux yazi neovim bat fd ripgrep sd eza gitleaks
 ```
 
+Las skills de gstack que abren un navegador (`/browse`, `/qa`, `/canary`, `/benchmark`,
+`/scrape`, `/diagram`, `/land-and-deploy`) necesitan además **Bun**, que compila su
+runtime:
+
+```bash
+brew install oven-sh/bun/bun
+./scripts/gstack-sync.sh          # clona el pin, compila y regenera las skills
+```
+
+Sin ese paso las quince skills quedan instaladas pero inertes. El resto de la
+configuración funciona igual.
+
 ---
 
 ## 🗺️ Mapa del repositorio
@@ -292,7 +305,7 @@ brew install tmux yazi neovim bat fd ripgrep sd eza gitleaks
 ```
 dotfiles/
 │
-├── 📁 shared/skills/          Skills propias, independientes de la herramienta
+├── 📁 shared/skills/          Skills propias y las quince adoptadas de gstack
 │
 ├── 📁 config/
 │   ├── 🖥️  ghostty/            Tema Tokyo Night, tipografía, arranque
@@ -305,7 +318,7 @@ dotfiles/
 │   │   ├── open-file.sh       Abre el archivo en una pestaña nueva
 │   │   ├── close-file.sh      La cierra sin escribir el comando del editor
 │   │   ├── statusbar.sh       CPU · GPU · RAM · hora · fecha
-│   │   └── tests/             8 suites
+│   │   └── tests/             12 suites, con lib/wait.sh para esperas acotadas
 │   │
 │   ├── 📂 yazi/               Config de uso general
 │   ├── 📂 yazi-sidebar/       Config exclusiva del panel (árbol puro)
@@ -333,10 +346,16 @@ dotfiles/
 │   ├── installer-demo.tape    Grabación de la TUI (VHS)
 │   └── environment.tape       Captura de tmux + yazi (VHS)
 │
-├── 📁 scripts/install.sh      Arranque de un comando (curl | sh)
+├── 📁 scripts/
+│   ├── install.sh             Arranque de un comando (curl | sh)
+│   ├── gstack-patch.sh        Quita de un SKILL.md lo que choca con CLAUDE.md
+│   └── gstack-sync.sh         Clona gstack al pin, compila y regenera las skills
+│
+├── 📁 third_party/gstack/     ⛔ No versionado. Runtime de gstack, 42 MB
+├── 📌 GSTACK_PIN              Commit exacto de gstack que se vendoriza
 ├── 📋 install.manifest        Qué se instala y dónde — fuente única
 ├── ⚙️  install.sh              Instalador shell: lee el mismo manifiesto
-└── 🧪 tests/                  9 suites transversales
+└── 🧪 tests/                  10 suites transversales
 ```
 
 > [!IMPORTANT]
@@ -626,8 +645,10 @@ direccional sirve cuando ya sabes dónde está.
 
 ### 🧩 Skills compartidas
 
-`shared/skills` contiene **solo skills propias**. Son independientes de la herramienta y
-se enlazan a los tres destinos a la vez, así que existen una sola vez.
+`shared/skills` se enlaza a los tres destinos a la vez, así que cada skill existe una
+sola vez.
+
+**Propias:**
 
 | Skill | Función |
 | :--- | :--- |
@@ -636,8 +657,79 @@ se enlazan a los tres destinos a la vez, así que existen una sola vez.
 | 🎬 `product-demo-video` | Vídeos de demo de producto de 60–90 s |
 | 🚢 `ship` | De árbol de trabajo a PR publicada |
 
+**Adoptadas de [gstack](https://github.com/garrytan/gstack)**, quince de sus cincuenta y
+cuatro, y parcheadas (ver más abajo):
+
+| Skill | Función |
+| :--- | :--- |
+| 🌐 `browse` · `scrape` | Chromium headless, ~100 ms por orden, con defensa antiinyección local |
+| 🐞 `qa` · `qa-only` | QA con navegador real: encuentra fallos, los corrige y genera tests de regresión |
+| 🛡️ `careful` · `freeze` · `guard` · `unfreeze` | Avisan antes de órdenes destructivas y limitan las ediciones a un directorio |
+| 🔍 `investigate` | Depuración por hipótesis hasta la causa raíz |
+| 📐 `diagram` | De una descripción en prosa a mermaid editable, excalidraw y SVG/PNG |
+| 📈 `canary` · `benchmark` · `retro` | Vigilancia tras desplegar, Core Web Vitals y retrospectiva con métricas |
+| 🚀 `land-and-deploy` | Merge → CI → despliegue → verificación en producción |
+| 🎨 `design-shotgun` | Cuatro a seis variantes en paralelo con tablero de comparación |
+
 Las skills de marketplaces y packs de terceros **no se versionan**: cada herramienta las
 reinstala por su cuenta.
+
+<details>
+<summary><b>Por qué las de gstack están parcheadas y no copiadas</b></summary>
+
+<br/>
+
+Toda skill de gstack por encima del nivel 2 arrastra unos **31 KB de preámbulo común**
+—el 72 % del fichero en `canary`, el 70 % en `investigate`—. Ese preámbulo no es
+instrucción de tarea: trae su propia voz, su propia disciplina de commits, su propio
+formato de preguntas y su propio sistema de memoria. Esta configuración ya tiene los
+cuatro, y no coinciden:
+
+| Sección | Choca con |
+| :--- | :--- |
+| `Voice` | La persona definida en `CLAUDE.md` |
+| `Continuous Checkpoint Mode` | `work-unit-commits` (hace auto-commits `WIP:`) |
+| `Question Tuning` · `AskUserQuestion Format` | La regla de una pregunta cada vez |
+| `Brain Context` · `Artifacts Sync` | **engram**, que es la memoria persistente aquí |
+
+Cargar una skill sin parchear mete dos doctrinas en el mismo contexto y deja que el
+modelo elija. No es cuestión de estilo: es un problema de corrección.
+
+Un segundo grupo se elimina por otro motivo — en una instalación vendorizada es **código
+muerto**. `AskUserQuestion Format` es la sección más pesada de todas (10,9 KB de 40 KB en
+`canary`) y cada byte resuelve Conductor, `plan-tune` y `question-log`, que aquí no
+existen. `Preamble` ejecuta `gstack-skill-start` desde una ruta que esta instalación
+nunca crea, así que falla en cada invocación.
+
+Resultado: **450 KB → 255 KB, un 43 % menos**. Los ficheros generados llevan cabecera de
+procedencia y **no se editan a mano**: el siguiente `gstack-sync.sh` descarta el cambio.
+Se toca el parche o se mueve el pin.
+
+</details>
+
+<details>
+<summary><b>Lo que de gstack se descartó a propósito</b></summary>
+
+<br/>
+
+Más de la mitad de gstack duplica algo que ya existe aquí, y dos skills compitiendo por
+el mismo disparador es peor que cualquiera de las dos por separado:
+
+| Descartado | Porque ya lo cubre |
+| :--- | :--- |
+| `/office-hours`, `/plan-*`, `/autoplan`, `/spec` | La cadena SDD — 15,7 KB en siete subagentes con contexto aislado, frente a 401 KB ejecutándose en el hilo principal |
+| `/design-consultation`, `/design-review`, `/design-html` | `frontend-design` + `ui-ux-pro-max` + `impeccable` + `DESIGN.md` |
+| `/learn`, `/context-save`, `/context-restore`, GBrain | **engram** |
+| `/document-generate`, `/document-release` | `docs-guardian`, `readme-guardian`, `cognitive-doc-design` |
+| `/cso` | `claude-security` + `owasp-security` |
+| `/make-pdf` | `pdf-report` |
+| El `/ship` de gstack | El `/ship` propio, que tiene presupuesto de revisión y PRs encadenadas |
+
+Por eso **nunca se ejecuta el `./setup` de gstack**: planta el repositorio entero en
+`~/.claude/skills/gstack`, registra 54 comandos y cuatro familias de hooks, y devolvería
+todo lo anterior más un `/ship` que taparía al propio.
+
+</details>
 
 <details>
 <summary><b>La duplicación ya había divergido</b></summary>
@@ -683,7 +775,7 @@ distintos. Son la **capa de adaptación** entre cada herramienta y las skills co
 
 | Ruta | Contenido |
 | :--- | :--- |
-| `claude/CLAUDE.md` | Instrucciones globales: persona, TDD estricto, pipeline de diseño |
+| `claude/CLAUDE.md` | Instrucciones globales: persona, TDD estricto, pipeline de diseño, adopción de gstack |
 | `claude/sdd-orchestrator.md` | Reglas de orquestación y delegación para SDD |
 | `claude/settings.json` | Permisos, hooks, plugins y marketplaces |
 | `claude/agents/`, `commands/`, `hooks/`, `prompts/` | Subagentes, comandos y hooks |
@@ -791,6 +883,7 @@ escaneo informó «sin credenciales».
 | `~/.local/share/opencode/opencode.db` | 💾 4,5 GB |
 | `~/.claude/settings.local.json` | 💻 Permisos de una máquina concreta |
 | `.agents/` | 📓 Notas de diseño, solo locales |
+| `third_party/gstack/` | ♻️ 42 MB reproducibles desde `GSTACK_PIN` |
 | `node_modules`, `*.bak` | ♻️ Regenerables |
 
 ---
@@ -802,19 +895,21 @@ escaneo informó «sin credenciales».
 ```
 
 ```
-secrets                 5 passed        keybindings            11 passed
-manifest               10 passed        sidebar-button         10 passed
-no-proprietary         10 passed        close-file              8 passed
-zshrc-secrets          14 passed        sidebar-follow         11 passed
-shell-hygiene          11 passed        sidebar-watch           7 passed
-install                40 passed        statusbar              33 passed
-launch                 17 passed        status-style            7 passed
-ghostty-keys           13 passed        paste-router           12 passed
-sidebar-toggle         21 passed        go                6 packages passed
-open-file              17 passed        npm-packaging          13 passed
-yazi-sidebar-config    10 passed
+secrets                 5 passed        sidebar-toggle         21 passed
+manifest               10 passed        open-file              17 passed
+no-proprietary         10 passed        yazi-sidebar-config    10 passed
+zshrc-secrets          14 passed        statusbar              33 passed
+shell-hygiene          11 passed        status-style            7 passed
+install                40 passed        keybindings            11 passed
+launch                 17 passed        sidebar-button         10 passed
+ghostty-keys           13 passed        close-file              8 passed
+gstack-patch           42 passed        sidebar-follow         11 passed
+gstack-skills           9 passed        sidebar-watch           7 passed
+wait-helpers           16 passed        paste-router           12 passed
+                                        go                6 packages passed
+                                        npm-packaging          13 passed
 
-286 passed, 0 failed
+353 passed, 0 failed
 ```
 
 Una sola orden cubre **shell, Go y npm**: si están los toolchains, `run-all.sh` ejecuta
@@ -828,7 +923,7 @@ Cada suite levanta su **propio servidor de tmux aislado** (`tmux -L`) y, en el c
 > [!NOTE]
 > Los tests de Go usan `t.TempDir()` para el repo y para `$HOME`, así que tampoco tocan
 > nada real. `manifest` es el que impide que los dos instaladores diverjan: compila el
-> binario y compara sus 43 destinos con los de `install.sh`.
+> binario y compara sus 88 destinos con los de `install.sh`.
 
 > [!NOTE]
 > Las suites de tmux y yazi comprueban la configuración **instalada** en `~/.config`, así
@@ -851,6 +946,7 @@ verde mientras el fallo seguía ahí**. Son los patrones que más veces engañar
 | `grep` al código fuente | Comprobaba lo que el script **dice**, no lo que **hace** | Aserciones de comportamiento |
 | Normalizar dígito a dígito | Comparaba dos ejecuciones con datos vivos: `23%` vs `9%` daban `NN%` vs `N%` | Colapsar valores de longitud variable |
 | `pgrep -f 'sidebar-watch.sh'` | También contaba el **propio fichero de test**, que lleva ese nombre | Excluir `.test.sh` |
+| `sleep` fijo tras `kill-server` | `kill-server` solo **inicia** el apagado: bajo carga el `new-session` siguiente aterrizaba en un servidor moribundo que, al terminar, borraba el socket y se llevaba la sesión nueva. Todo devolvía `no server running` y las aserciones describían un panel que nunca se creó | Un **socket propio** por bloque, no reutilizar el que se está destruyendo |
 
 Regla que resume todo: **un test que afirma ausencia pasa por defecto.** Si no lo mutas
 para verlo fallar, no sabes si sirve. Varios de estos se verificaron reintroduciendo el
