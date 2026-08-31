@@ -8,6 +8,11 @@ SOCKET="sidebar-test-$$"
 TMUX_TEST=(tmux -L "$SOCKET")
 WORKDIR="$(mktemp -d)"
 
+# Bounded waits, so the end-to-end assertions poll for panes to settle instead
+# of betting a fixed sleep on how fast the machine is.
+# shellcheck source=lib/wait.sh
+. "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib/wait.sh"
+
 # Run these tests inside tmux — which is how they are actually run — and the
 # developer's own TMUX_PANE leaks into every invocation of the script. The
 # script honours it, so it resolves a pane id belonging to the REAL server
@@ -149,39 +154,66 @@ fi   # end of the macOS-only launchd block
 dir_a="$WORKDIR/proyecto-a"; dir_b="$WORKDIR/proyecto-b"
 mkdir -p "$dir_a" "$dir_b"
 
-# A shell needs to be up before the pane reports its own directory. 0.4s is
-# enough on this Mac and not on a slower or busier machine, where the read came
-# back as the process working directory instead.
-SETTLE="${SETTLE:-1.2}"
-
+# A shell has to be up before a pane reports its own directory, and there is no
+# way to know in advance how long that takes. This block used to bridge the gap
+# with a fixed sleep, raised once from 0.4s to 1.2s when a slower machine read
+# the process working directory instead of the project one.
+#
+# Raising it again would not have helped. On CI these three assertions failed
+# with exactly that symptom — /home/runner/work/dotfiles/dotfiles where the
+# project path was expected — while passing locally every time, and a rerun of
+# the same commit moved the failure to a different suite entirely. A fixed
+# sleep is a bet on machine speed; the polls below wait for the condition
+# itself, so a fast machine spends no time here and a slow one gets what it
+# needs.
 "${TMUX_TEST[@]}" new-session -d -s main -c "$dir_a" -x 200 -y 50
-sleep "$SETTLE"
-win_a="$("${TMUX_TEST[@]}" list-windows -t main -F '#{window_id}')"
-pane_a="$("${TMUX_TEST[@]}" list-panes -t "$win_a" -F '#{pane_id}')"
+win_a="$(wait_until 10 '@' "${TMUX_TEST[@]}" list-windows -t main -F '#{window_id}')"
+pane_a="$(wait_until 10 '%' "${TMUX_TEST[@]}" list-panes -t "$win_a" -F '#{pane_id}')"
 
 "${TMUX_TEST[@]}" new-window -t main -c "$dir_b"
-sleep "$SETTLE"
-win_b="$("${TMUX_TEST[@]}" list-windows -t main -F '#{window_id}' | tail -1)"
-pane_b="$("${TMUX_TEST[@]}" list-panes -t "$win_b" -F '#{pane_id}')"
+last_window() { "${TMUX_TEST[@]}" list-windows -t main -F '#{window_id}' | tail -1; }
+# Poll until the newest window id differs from A's. Reading the list too early
+# returns A again, and every assertion below would then compare A with itself
+# and pass for the wrong reason — worse than failing.
+window_b_appeared() { [ "$(last_window)" != "$win_a" ]; }
+wait_for 10 window_b_appeared
+win_b="$(last_window)"
+pane_b="$(wait_until 10 '%' "${TMUX_TEST[@]}" list-panes -t "$win_b" -F '#{pane_id}')"
 
 # Window B is active here, so opening A's sidebar is the case that used to break.
 SIDEBAR_CMD="sleep 600" TMUX_SOCKET="$SOCKET" TMUX_PANE="$pane_a" bash "$SCRIPT" >/dev/null 2>&1
 SIDEBAR_CMD="sleep 600" TMUX_SOCKET="$SOCKET" TMUX_PANE="$pane_b" bash "$SCRIPT" >/dev/null 2>&1
-sleep "$SETTLE"
 
-sb_a="$("${TMUX_TEST[@]}" list-panes -t "$win_a" -F '#{pane_id}|#{?@sidebar,1,0}' | awk -F'|' '$2=="1"{print $1}')"
-sb_b="$("${TMUX_TEST[@]}" list-panes -t "$win_b" -F '#{pane_id}|#{?@sidebar,1,0}' | awk -F'|' '$2=="1"{print $1}')"
+# A tmux pane id always starts with '%', so it doubles as the "not empty yet"
+# marker: reading the pane list straight after the toggle can return nothing.
+sidebar_of() {
+  "${TMUX_TEST[@]}" list-panes -t "$1" -F '#{pane_id}|#{?@sidebar,1,0}' \
+    | awk -F'|' '$2=="1"{print $1}'
+}
+sb_a="$(wait_until 10 '%' sidebar_of "$win_a")"
+sb_b="$(wait_until 10 '%' sidebar_of "$win_b")"
 
 assert_eq "each window gets its own sidebar" "yes" \
   "$([ -n "$sb_a" ] && [ -n "$sb_b" ] && [ "$sb_a" != "$sb_b" ] && echo yes || echo no)"
 
+# Resolved through `cd && pwd -P` because on macOS /tmp is a symlink to
+# /private/tmp: tmux reports the unresolved path and the expectation is
+# resolved, so comparing the raw strings fails on a correct sidebar.
+sidebar_path() {
+  local p
+  p="$("${TMUX_TEST[@]}" display -p -t "$1" '#{pane_current_path}' 2>/dev/null)"
+  [ -n "$p" ] || return 1
+  (cd "$p" 2>/dev/null && pwd -P)
+}
+
+want_a="$(cd "$dir_a" && pwd -P)"
+want_b="$(cd "$dir_b" && pwd -P)"
+
 assert_eq "window A's sidebar starts in project A" \
-  "$(cd "$dir_a" && pwd -P)" \
-  "$(cd "$("${TMUX_TEST[@]}" display -p -t "$sb_a" '#{pane_current_path}')" && pwd -P)"
+  "$want_a" "$(wait_until 10 "$want_a" sidebar_path "$sb_a")"
 
 assert_eq "window B's sidebar starts in project B" \
-  "$(cd "$dir_b" && pwd -P)" \
-  "$(cd "$("${TMUX_TEST[@]}" display -p -t "$sb_b" '#{pane_current_path}')" && pwd -P)"
+  "$want_b" "$(wait_until 10 "$want_b" sidebar_path "$sb_b")"
 
 # --- terminal passthrough for yazi -------------------------------------------
 # yazi sends DA1/DSR probes at startup to detect terminal features. With

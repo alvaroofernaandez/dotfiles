@@ -16,6 +16,11 @@ SOCKET="yazicfg-test-$$"
 TMUX_TEST=(tmux -L "$SOCKET")
 WORKDIR="$(mktemp -d)"
 
+# Bounded waits, so the end-to-end assertions poll for the pane to settle
+# instead of betting a fixed sleep on how fast the machine is.
+# shellcheck source=lib/wait.sh
+. "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib/wait.sh"
+
 pass=0
 fail=0
 
@@ -115,11 +120,24 @@ for _ in $(seq 1 60); do
   sleep 0.1
 done
 TMUX_SOCKET="$SOCKET" TMUX_PANE="$e2e_pane" bash "$TOGGLE"
-sidebar="$("${TMUX_TEST[@]}" list-panes -t e2e -F '#{pane_id}|#{?@sidebar,1,0}' | awk -F'|' '$2=="1"{print $1}')"
-sleep 2.5
+
+# Two waits, because there are two races here and a fixed sleep covered
+# neither reliably. First the sidebar pane has to exist and carry the @sidebar
+# flag; reading the pane list straight after the toggle can return nothing at
+# all. Then yazi has to paint its first frame into it.
+#
+# This assertion is the one that failed on CI with an empty capture while
+# passing locally every time — the 2.5s sleep it used to rely on was simply a
+# bet on runner speed. `find_sidebar` is polled rather than read once, and the
+# capture retries until the filename appears or ten seconds pass.
+find_sidebar() {
+  "${TMUX_TEST[@]}" list-panes -t e2e -F '#{pane_id}|#{?@sidebar,1,0}' \
+    | awk -F'|' '$2=="1"{print $1}'
+}
+sidebar="$(wait_until 10 '%' find_sidebar)"
 
 assert_contains "shows the full filename at sidebar width" \
-  "$long" "$("${TMUX_TEST[@]}" capture-pane -p -t "$sidebar")"
+  "$long" "$(wait_until 10 "$long" "${TMUX_TEST[@]}" capture-pane -p -t "$sidebar")"
 rm -rf "$E2E"
 
 printf '\n%d passed, %d failed\n' "$pass" "$fail"
