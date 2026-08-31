@@ -180,6 +180,56 @@ Rules:
 - After the build, run `impeccable` audit pass. If motion was added, also run `design-motion-principles` in audit mode. Both audits MUST appear in the final output as `[design-audit]`.
 - If you find yourself writing UI code without having emitted `[design-pipeline]`, STOP and restart the task properly.
 
+### The gate is enforced, not requested
+
+`config/claude/hooks/design-pipeline-gate.sh` runs on every `Edit`/`Write`/
+`NotebookEdit` and **denies** the call when the target is a UI surface
+(`.tsx .jsx .vue .svelte .astro .css .scss .sass .less .styl .html`) and no
+`[design-pipeline]` checklist has been emitted in the session.
+
+This exists because for months the rule above said "STRICT" and "BLOCKING" and
+nothing blocked. It was prose inside ~42 KB of always-on instructions, competing
+with an SDD orchestrator that pushes the opposite way — *delegate ALL real work
+to sub-agents* — and sub-agents start clean, without the checklist. A rule with
+no enforcement point is a reminder.
+
+What the gate will and will not accept:
+
+- The **marker alone is not enough.** The first version matched on
+  `[design-pipeline]` anywhere, and the prose diagnosing this very bug opened
+  the gate. A run must carry all four numbered skill lines.
+- The **unfilled template is not a run.** A block still holding
+  `<1 sentence direction>` is the template echoed back.
+- Only **assistant-authored** text counts. This file reaches the transcript as
+  user-role content, so matching it would open the gate on turn one, forever.
+- **Tests are not design surfaces.** `*.test.tsx` and `*.spec.tsx` pass through:
+  blocking them would deadlock against the strict-TDD rule, which demands the
+  test be written FIRST — before any pipeline could have run.
+- It **fails open** with a warning when it cannot tell (no `jq`, unreadable
+  transcript). `DESIGN_PIPELINE_OFF=1` bypasses it deliberately.
+
+Tests: `tests/design-pipeline.test.sh`.
+
+### impeccable needs PRODUCT.md, and needs to be vendored per project
+
+Two traps, both of which made step 3 impossible to run for as long as it has
+been installed:
+
+1. Its `## Setup` runs `node .agents/skills/impeccable/scripts/context.mjs` — a
+   **project-relative** path. Installed globally at `~/.agents/skills/impeccable`,
+   that raised `Cannot find module` in every repo. The gate now links
+   `<project>/.agents/skills/impeccable` → the global install on first UI edit,
+   which satisfies the skill's own contract without patching a file this repo
+   does not version. It never touches a project that vendors its own copy.
+2. Even then it halts on `NO_PRODUCT_MD`. impeccable wants **PRODUCT.md**
+   (who/what/why) as well as `DESIGN.md` (how it looks) — its `init.md` is
+   explicit that PRODUCT.md comes from a real interview and must not be
+   inferred. The gate warns about a missing one in its denial, so the abort
+   lands before the pipeline starts instead of three skills into it.
+
+So `DESIGN.md` remains this configuration's source of truth for how things look;
+`PRODUCT.md` is impeccable's required companion, not a competing authority.
+
 ### Output discipline
 
 - No generic AI aesthetics. No purple gradient + glassmorphism unless explicitly intentional and justified.
