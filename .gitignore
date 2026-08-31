@@ -29,3 +29,15 @@ config/zsh/secrets.zsh
 /bin/
 /dist/
 /dist-npm/
+
+# gstack's vendored runtime: 42 MB of upstream source plus a Bun build plus the
+# Chromium that Playwright downloads. Reproducible from GSTACK_PIN by
+# scripts/gstack-sync.sh, so committing it would add weight and nothing else.
+# The part that matters — the fifteen patched skills — IS committed, under
+# shared/skills/, precisely so that changes to them show up in a diff.
+#
+# It lives in third_party/ rather than vendor/ because this repo is a Go module
+# and `vendor/` at a module root is reserved: Go reads it as its own dependency
+# tree and refuses to build without a matching vendor/modules.txt. Putting
+# gstack there broke `go build ./...` for the installer.
+/third_party/

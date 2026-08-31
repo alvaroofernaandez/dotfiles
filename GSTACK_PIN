@@ -1,0 +1,11 @@
+# The gstack commit this repo vendors. scripts/gstack-sync.sh checks out
+# exactly this sha, patches the fifteen adopted skills out of it, and writes
+# them to shared/skills/.
+#
+# Pinned rather than tracking main because the generated skills are committed:
+# an unpinned vendor means re-running sync rewrites them from whatever upstream
+# happens to be that day, and the resulting diff belongs to nobody. Moving the
+# pin is a deliberate act — bump the sha, re-run sync, read the diff.
+#
+# gstack v1.76.0.0
+253d1dfe2694e49d60ba083423446b8363e113eb
