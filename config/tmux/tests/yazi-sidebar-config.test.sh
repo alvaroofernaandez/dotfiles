@@ -26,6 +26,9 @@ fail=0
 
 cleanup() {
   "${TMUX_TEST[@]}" kill-server 2>/dev/null
+  # The e2e block runs on its own socket; leaving that server behind would keep
+  # a yazi process alive past the suite.
+  [ -n "${SOCKET_E2E:-}" ] && tmux -L "$SOCKET_E2E" kill-server 2>/dev/null
   rm -rf "$WORKDIR"
 }
 trap cleanup EXIT
@@ -109,17 +112,27 @@ assert_eq "toggle launches the sidebar with YAZI_CONFIG_HOME" \
   "$SIDEBAR_CONFIG_HOME" "$(cat "$WORKDIR/env.txt" 2>/dev/null)"
 
 # --- e2e: long names are not truncated at sidebar width ---------------------
-"${TMUX_TEST[@]}" kill-server 2>/dev/null
+# On a socket of its own rather than kill-server on the shared one followed by
+# a rebuild. That pattern is a race: kill-server only STARTS the shutdown, so
+# the new-session after it can land on a server that is still dying, which then
+# finishes and unlinks the socket, taking the new session with it. Everything
+# after fails with "no server running", every variable reads empty, and the
+# assertion reports a sidebar that was never built. It is what made CI red.
+#
+# Waiting cannot fix that shape — it waits for something that will never come.
+# A fresh socket cannot collide with a server that is shutting down.
+SOCKET_E2E="$SOCKET-e2e"
+TMUX_E2E=(tmux -L "$SOCKET_E2E")
 long="un-nombre-de-archivo-bastante-largo.md"
 E2E="$(mktemp -d)"
 printf '# hi\n' > "$E2E/$long"
-"${TMUX_TEST[@]}" new-session -d -s e2e -c "$E2E" -x 200 -y 50
-e2e_pane="$("${TMUX_TEST[@]}" list-panes -t e2e -F '#{pane_id}')"
+"${TMUX_E2E[@]}" new-session -d -s e2e -c "$E2E" -x 200 -y 50
+e2e_pane="$("${TMUX_E2E[@]}" list-panes -t e2e -F '#{pane_id}')"
 for _ in $(seq 1 60); do
-  [ -n "$("${TMUX_TEST[@]}" display -p -t "$e2e_pane" '#{pane_current_command}')" ] && break
+  [ -n "$("${TMUX_E2E[@]}" display -p -t "$e2e_pane" '#{pane_current_command}')" ] && break
   sleep 0.1
 done
-TMUX_SOCKET="$SOCKET" TMUX_PANE="$e2e_pane" bash "$TOGGLE"
+TMUX_SOCKET="$SOCKET_E2E" TMUX_PANE="$e2e_pane" bash "$TOGGLE"
 
 # Two waits, because there are two races here and a fixed sleep covered
 # neither reliably. First the sidebar pane has to exist and carry the @sidebar
@@ -131,13 +144,13 @@ TMUX_SOCKET="$SOCKET" TMUX_PANE="$e2e_pane" bash "$TOGGLE"
 # bet on runner speed. `find_sidebar` is polled rather than read once, and the
 # capture retries until the filename appears or ten seconds pass.
 find_sidebar() {
-  "${TMUX_TEST[@]}" list-panes -t e2e -F '#{pane_id}|#{?@sidebar,1,0}' \
+  "${TMUX_E2E[@]}" list-panes -t e2e -F '#{pane_id}|#{?@sidebar,1,0}' \
     | awk -F'|' '$2=="1"{print $1}'
 }
 sidebar="$(wait_until 10 '%' find_sidebar)"
 
 assert_contains "shows the full filename at sidebar width" \
-  "$long" "$(wait_until 10 "$long" "${TMUX_TEST[@]}" capture-pane -p -t "$sidebar")"
+  "$long" "$(wait_until 10 "$long" "${TMUX_E2E[@]}" capture-pane -p -t "$sidebar")"
 rm -rf "$E2E"
 
 printf '\n%d passed, %d failed\n' "$pass" "$fail"

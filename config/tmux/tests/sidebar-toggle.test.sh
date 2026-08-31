@@ -26,6 +26,10 @@ fail=0
 
 cleanup() {
   "${TMUX_TEST[@]}" kill-server 2>/dev/null
+  # The multi-window block runs on its own socket; without this the server it
+  # started outlives the suite, and run-all.sh then waits on a pipe held open
+  # by a `sleep 600` parked inside one of its panes.
+  [ -n "${SOCKET_MW:-}" ] && tmux -L "$SOCKET_MW" kill-server 2>/dev/null
   rm -rf "$WORKDIR"
 }
 trap cleanup EXIT
@@ -150,7 +154,23 @@ fi   # end of the macOS-only launchd block
 # start in ITS OWN directory: `split-window -t <pane> -c '#{pane_current_path}'`
 # creates the pane in the right window but expands -c against the ACTIVE pane,
 # so the second sidebar inherited the first project's directory.
-"${TMUX_TEST[@]}" kill-server 2>/dev/null
+#
+# This block runs on a socket of its own instead of doing `kill-server` on the
+# shared one and building back up. That pattern is a race, and it is the race
+# that made CI red: kill-server only STARTS the shutdown, so the new-session
+# that follows can create its session on a server that is still dying. The old
+# server then finishes, unlinks the socket, and takes the new session with it.
+# Every later command fails with "no server running", every variable comes back
+# empty, and the assertions report a broken sidebar that was never built.
+#
+# No amount of waiting fixes that shape — polling waits for something that will
+# never arrive. A fresh socket cannot collide with a server that is shutting
+# down, so the race is removed rather than widened.
+#
+# Reproduced with: docker run --cpus 0.4, which fails this block roughly one run
+# in six on the old code and never on this one.
+SOCKET_MW="$SOCKET-multiwindow"
+TMUX_MW=(tmux -L "$SOCKET_MW")
 dir_a="$WORKDIR/proyecto-a"; dir_b="$WORKDIR/proyecto-b"
 mkdir -p "$dir_a" "$dir_b"
 
@@ -166,28 +186,28 @@ mkdir -p "$dir_a" "$dir_b"
 # sleep is a bet on machine speed; the polls below wait for the condition
 # itself, so a fast machine spends no time here and a slow one gets what it
 # needs.
-"${TMUX_TEST[@]}" new-session -d -s main -c "$dir_a" -x 200 -y 50
-win_a="$(wait_until 10 '@' "${TMUX_TEST[@]}" list-windows -t main -F '#{window_id}')"
-pane_a="$(wait_until 10 '%' "${TMUX_TEST[@]}" list-panes -t "$win_a" -F '#{pane_id}')"
+"${TMUX_MW[@]}" new-session -d -s main -c "$dir_a" -x 200 -y 50
+win_a="$(wait_until 10 '@' "${TMUX_MW[@]}" list-windows -t main -F '#{window_id}')"
+pane_a="$(wait_until 10 '%' "${TMUX_MW[@]}" list-panes -t "$win_a" -F '#{pane_id}')"
 
-"${TMUX_TEST[@]}" new-window -t main -c "$dir_b"
-last_window() { "${TMUX_TEST[@]}" list-windows -t main -F '#{window_id}' | tail -1; }
+"${TMUX_MW[@]}" new-window -t main -c "$dir_b"
+last_window() { "${TMUX_MW[@]}" list-windows -t main -F '#{window_id}' | tail -1; }
 # Poll until the newest window id differs from A's. Reading the list too early
 # returns A again, and every assertion below would then compare A with itself
 # and pass for the wrong reason — worse than failing.
 window_b_appeared() { [ "$(last_window)" != "$win_a" ]; }
 wait_for 10 window_b_appeared
 win_b="$(last_window)"
-pane_b="$(wait_until 10 '%' "${TMUX_TEST[@]}" list-panes -t "$win_b" -F '#{pane_id}')"
+pane_b="$(wait_until 10 '%' "${TMUX_MW[@]}" list-panes -t "$win_b" -F '#{pane_id}')"
 
 # Window B is active here, so opening A's sidebar is the case that used to break.
-SIDEBAR_CMD="sleep 600" TMUX_SOCKET="$SOCKET" TMUX_PANE="$pane_a" bash "$SCRIPT" >/dev/null 2>&1
-SIDEBAR_CMD="sleep 600" TMUX_SOCKET="$SOCKET" TMUX_PANE="$pane_b" bash "$SCRIPT" >/dev/null 2>&1
+SIDEBAR_CMD="sleep 600" TMUX_SOCKET="$SOCKET_MW" TMUX_PANE="$pane_a" bash "$SCRIPT" >/dev/null 2>&1
+SIDEBAR_CMD="sleep 600" TMUX_SOCKET="$SOCKET_MW" TMUX_PANE="$pane_b" bash "$SCRIPT" >/dev/null 2>&1
 
 # A tmux pane id always starts with '%', so it doubles as the "not empty yet"
 # marker: reading the pane list straight after the toggle can return nothing.
 sidebar_of() {
-  "${TMUX_TEST[@]}" list-panes -t "$1" -F '#{pane_id}|#{?@sidebar,1,0}' \
+  "${TMUX_MW[@]}" list-panes -t "$1" -F '#{pane_id}|#{?@sidebar,1,0}' \
     | awk -F'|' '$2=="1"{print $1}'
 }
 sb_a="$(wait_until 10 '%' sidebar_of "$win_a")"
@@ -201,7 +221,7 @@ assert_eq "each window gets its own sidebar" "yes" \
 # resolved, so comparing the raw strings fails on a correct sidebar.
 sidebar_path() {
   local p
-  p="$("${TMUX_TEST[@]}" display -p -t "$1" '#{pane_current_path}' 2>/dev/null)"
+  p="$("${TMUX_MW[@]}" display -p -t "$1" '#{pane_current_path}' 2>/dev/null)"
   [ -n "$p" ] || return 1
   (cd "$p" 2>/dev/null && pwd -P)
 }
