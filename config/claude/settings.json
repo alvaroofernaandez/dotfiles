@@ -71,6 +71,11 @@
           {
             "type": "command",
             "command": "[ -n \"$TERAX_TERMINAL\" ] && printf '{\"terminalSequence\":\"\\\\u001b]777;notify;Terax;finished\\\\u0007\"}' || true"
+          },
+          {
+            "type": "command",
+            "command": "[ -x \"$HOME/.gstack/bin/gstack-verify-gate\" ] && \"$HOME/.gstack/bin/gstack-verify-gate\" || true",
+            "timeout": 120000
           }
         ]
       }
