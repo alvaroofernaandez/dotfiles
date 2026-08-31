@@ -33,6 +33,7 @@ SUITES=(
   "$REPO/tests/launch.test.sh"
   "$REPO/tests/ghostty-keys.test.sh"
   "$REPO/tests/gstack-patch.test.sh"
+  "$REPO/tests/gstack-skills.test.sh"
   "$REPO/config/tmux/tests/sidebar-toggle.test.sh"
   "$REPO/config/tmux/tests/open-file.test.sh"
   "$REPO/config/tmux/tests/yazi-sidebar-config.test.sh"

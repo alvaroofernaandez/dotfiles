@@ -92,5 +92,17 @@ platforms = all
 # Commands and agents are deliberately not shared this way: OpenCode's carry
 # their own frontmatter (agent:, subtask:) and tool-specific paths, so each
 # tool keeps its own copy above.
+# Fifteen of the skills below are vendored from gstack rather than written
+# here, and they are NOT self-contained: they call binaries and read reference
+# files through ~/.gstack. That symlink, and the compiled browse binary the
+# browser-backed ones need, are created by scripts/gstack-sync.sh — not by this
+# manifest, because its target lives in third_party/, which is gitignored and
+# therefore absent on a fresh clone. Linking a path that does not exist yet is
+# how an installer fails halfway through on someone else's machine.
+#
+# So: after install.sh, run scripts/gstack-sync.sh once. Without it /browse,
+# /qa, /canary, /benchmark, /scrape, /diagram, /land-and-deploy and
+# /design-shotgun are present but inert. See the gstack section in
+# config/claude/CLAUDE.md for what was adopted and what was deliberately not.
 fanout-source = shared/skills
 fanout-dests = .claude/skills .config/opencode/skills .opencode/skills
