@@ -115,7 +115,7 @@
     "claude-security@claude-plugins-official": true,
     "typescript-lsp@claude-plugins-official": true,
     "rust-analyzer-lsp@claude-plugins-official": true,
-    "bencium-innovative-ux-designer@bencium-marketplace": true
+    "bencium-innovative-ux-designer@bencium-marketplace": false
   },
   "extraKnownMarketplaces": {
     "claude-code-warp": {
