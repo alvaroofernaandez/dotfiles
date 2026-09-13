@@ -207,6 +207,25 @@ What the gate will and will not accept:
   test be written FIRST — before any pipeline could have run.
 - It **fails open** with a warning when it cannot tell (no `jq`, unreadable
   transcript). `DESIGN_PIPELINE_OFF=1` bypasses it deliberately.
+- **Sub-agent transcripts count too**, and this is the correction that made the
+  gate usable at all. A tool call made by a sub-agent arrives carrying the
+  PARENT's `session_id` and `transcript_path` — measured 2026-09-13 by logging
+  the raw payload while a sub-agent wrote a `.css` file — and the parent
+  transcript holds none of the sub-agent's messages; those live in
+  `<transcript-without-.jsonl>/subagents/agent-<id>.jsonl`. So for months the
+  gate denied **every** UI edit by a sub-agent, no matter how well it had run
+  the pipeline. That is worse than no gate: three writers hit it in a single
+  day and each routed around it (`DESIGN_PIPELINE_OFF=1`, or editing through
+  Bash, which the hook does not intercept). They declared it, which is the only
+  reason it surfaced. The gate now scans the parent transcript **and every
+  sub-agent transcript of the same session** — the same session scope the rule
+  already had, extended to the agents that session spawned.
+
+Note the irony worth remembering: the section above justifies this gate by
+naming sub-agents as the reason it exists ("sub-agents start clean, without the
+checklist"), and sub-agents were precisely the population it could never let
+through. A rule that cannot be satisfied does not enforce anything; it teaches
+people to route around it.
 
 Tests: `tests/design-pipeline.test.sh`.
 

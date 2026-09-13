@@ -161,28 +161,64 @@ esac
 
 # -R + fromjson? tolerates a truncated or malformed line rather than aborting
 # the whole scan; a half-written last line is normal in a live transcript.
-EMITTED="$(
-  jq -Rr '
-    fromjson? // empty
-    | select(.type == "assistant")
-    | .message.content[]?
-    | select(.type == "text")
-    | .text
-    | select(contains("[design-pipeline]"))
-    | select(test("1\\.\\s*frontend-design"))
-    | select(test("2\\.\\s*ui-ux-pro-max"))
-    | select(test("3\\.\\s*impeccable"))
-    | select(test("4\\.\\s*design-motion-principles"))
-    | select(
-        (contains("<1 sentence direction>")
-         or contains("<palette / type / layout / pattern chosen>")
-         or contains("<reason + curve>")) | not
-      )
-    | "EMITTED"
-  ' "$TRANSCRIPT" 2>/dev/null | head -1
-)"
+MATCHER='
+  fromjson? // empty
+  | select(.type == "assistant")
+  | .message.content[]?
+  | select(.type == "text")
+  | .text
+  | select(contains("[design-pipeline]"))
+  | select(test("1\\.\\s*frontend-design"))
+  | select(test("2\\.\\s*ui-ux-pro-max"))
+  | select(test("3\\.\\s*impeccable"))
+  | select(test("4\\.\\s*design-motion-principles"))
+  | select(
+      (contains("<1 sentence direction>")
+       or contains("<palette / type / layout / pattern chosen>")
+       or contains("<reason + curve>")) | not
+    )
+  | "EMITTED"
+'
 
-[ "$EMITTED" = "EMITTED" ] && exit 0
+emitted_in() { [ -r "$1" ] && [ "$(jq -Rr "$MATCHER" "$1" 2>/dev/null | head -1)" = "EMITTED" ]; }
+
+emitted_in "$TRANSCRIPT" && exit 0
+
+# --- and the sub-agents' own transcripts -------------------------------------
+#
+# THE FALSE NEGATIVE THAT MADE THIS GATE UNRUNNABLE FOR SUB-AGENTS.
+#
+# A tool call made by a sub-agent arrives here carrying the PARENT's identity:
+# measured on 2026-09-13 by logging the raw hook input while a sub-agent wrote a
+# .css file, the payload came back with the parent's `session_id` (16d8b94c…)
+# and the parent's `transcript_path`, and the parent transcript holds ZERO
+# entries from the sub-agent — `isSidechain` lines are not written there. The
+# sub-agent's messages live in a separate file:
+#
+#   <projects>/<slug>/<session-id>/subagents/agent-<id>.jsonl
+#
+# So a sub-agent could emit a perfect checklist and this gate would still deny
+# every UI edit it attempted, forever. That is worse than not gating at all: a
+# rule that cannot be satisfied gets routed around, and it was — three writers
+# in one day reached for DESIGN_PIPELINE_OFF or edited through Bash, which this
+# hook does not intercept. Each of them declared it, which is the only reason it
+# was caught. The next one might not.
+#
+# Scanning every sub-agent transcript of this session — rather than trying to
+# guess WHICH sub-agent is calling — is deliberate, and it does not loosen the
+# rule. The gate has always been session-scoped: one checklist from the main
+# thread opens it for the rest of the session, exactly as CLAUDE.md describes
+# ("you may cache skill directives ONCE per session"). Sub-agents of that
+# session are part of the same run. The alternative — matching the calling agent
+# — is not available: the payload carries no agent id, and PreToolUse fires
+# BEFORE the call is written to any transcript, so there is nothing to correlate
+# `tool_use_id` against.
+SUBAGENTES="${TRANSCRIPT%.jsonl}/subagents"
+if [ -d "$SUBAGENTES" ]; then
+  for t in "$SUBAGENTES"/*.jsonl; do
+    emitted_in "$t" && exit 0
+  done
+fi
 
 # --- deny --------------------------------------------------------------------
 # The reason has to teach, not just refuse. A bare "denied" sends the model

@@ -290,5 +290,69 @@ assert_eq "the bencium UX plugin is not enabled" "no" \
   "$(jq -r '.enabledPlugins["bencium-innovative-ux-designer@bencium-marketplace"] // false' \
       "$SETTINGS" | rg -q '^true$' && echo yes || echo no)"
 
+# --- sub-agents ---------------------------------------------------------------
+# The false negative that made this gate unrunnable for exactly the population
+# it was written for.
+#
+# CLAUDE.md's own rationale for the gate names sub-agents as the reason it
+# exists: "sub-agents start with a clean context, without the checklist". But a
+# tool call made by a sub-agent arrives at the hook carrying the PARENT's
+# identity — measured 2026-09-13 by logging the raw payload while a sub-agent
+# wrote a .css file: parent `session_id`, parent `transcript_path`. And the
+# parent transcript holds none of the sub-agent's messages; those live in
+# <transcript-without-.jsonl>/subagents/agent-<id>.jsonl.
+#
+# So a sub-agent that ran the pipeline perfectly was denied anyway, every time,
+# forever. Three writers in one day hit it; each reached for DESIGN_PIPELINE_OFF
+# or edited through Bash (which this hook does not intercept) and declared it in
+# their report. Declaring it is the only reason it surfaced. A gate that cannot
+# be satisfied does not enforce a rule — it teaches people to route around it.
+#
+# These four tests are that claim. If the first goes red, the gate is back to
+# denying every sub-agent; if the last goes red, it has stopped discriminating
+# and any transcript on disk opens it.
+
+PROJ5="$TMP/proj5"
+mkdir -p "$PROJ5/src"
+SESION="$TMP/sesion-con-subagentes.jsonl"
+SUBS="$TMP/sesion-con-subagentes/subagents"
+mkdir -p "$SUBS"
+
+# The parent did NOT run the pipeline; only the sub-agent doing the UI work did.
+mk_transcript "$SESION" "$(user_line 'sube el contraste de los botones')"
+mk_transcript "$SUBS/agent-aaa.jsonl" "$(assistant_line "$FILLED_CHECKLIST")"
+
+assert_eq "a sub-agent's checklist opens the gate" "none" \
+  "$(decision "$(run_hook Edit "$PROJ5/src/Button.tsx" "$SESION" "$PROJ5")")"
+
+# Same shape, but the sub-agent only echoed the template back.
+SESION2="$TMP/sesion-plantilla.jsonl"
+SUBS2="$TMP/sesion-plantilla/subagents"
+mkdir -p "$SUBS2"
+mk_transcript "$SESION2" "$(user_line 'sube el contraste de los botones')"
+mk_transcript "$SUBS2/agent-bbb.jsonl" "$(assistant_line "$TEMPLATE_CHECKLIST")"
+
+assert_eq "a sub-agent echoing the template does NOT open the gate" "deny" \
+  "$(decision "$(run_hook Edit "$PROJ5/src/Button.tsx" "$SESION2" "$PROJ5")")"
+
+# And user-role content inside a sub-agent transcript is still not a run:
+# CLAUDE.md reaches sub-agents too, carrying the literal marker.
+SESION3="$TMP/sesion-usuario.jsonl"
+SUBS3="$TMP/sesion-usuario/subagents"
+mkdir -p "$SUBS3"
+mk_transcript "$SESION3" "$(user_line 'sube el contraste')"
+mk_transcript "$SUBS3/agent-ccc.jsonl" "$(user_line "$FILLED_CHECKLIST")"
+
+assert_eq "user-role text in a sub-agent transcript does NOT open the gate" "deny" \
+  "$(decision "$(run_hook Edit "$PROJ5/src/Button.tsx" "$SESION3" "$PROJ5")")"
+
+# A session with no sub-agents at all must behave exactly as before: the
+# lookup is a fallback, not a new way in.
+SESION4="$TMP/sesion-sin-subagentes.jsonl"
+mk_transcript "$SESION4" "$(user_line 'sube el contraste')"
+
+assert_eq "no subagents directory leaves the gate denying" "deny" \
+  "$(decision "$(run_hook Edit "$PROJ5/src/Button.tsx" "$SESION4" "$PROJ5")")"
+
 printf '\n%d passed, %d failed\n' "$pass" "$fail"
 [ "$fail" -eq 0 ]
