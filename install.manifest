@@ -55,7 +55,6 @@ platforms = all
 
 config/claude/CLAUDE.md            .claude/CLAUDE.md
 config/claude/RTK.md               .claude/RTK.md
-config/claude/sdd-orchestrator.md  .claude/sdd-orchestrator.md
 config/claude/MCP-PER-PROJECT.md   .claude/MCP-PER-PROJECT.md
 config/claude/settings.json        .claude/settings.json
 config/claude/agents               .claude/agents

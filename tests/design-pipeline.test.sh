@@ -455,11 +455,24 @@ LAWS
   assert_eq "the skill carries all 30 laws" "" "$MISSING"
 fi
 
-# CLAUDE.md has to describe the step the gate enforces, or the two drift and
-# the model is told to run a four-step pipeline that a five-step gate denies.
+# The document describing the pipeline has to carry the step the gate enforces,
+# or the two drift and the model is told to run a four-step pipeline that a
+# five-step gate denies. That document moved out of CLAUDE.md on 2026-09-19:
+# the checklist and the DESIGN.md contract are now the `design-pipeline` skill,
+# loaded on demand instead of on every turn. CLAUDE.md keeps only the blocking
+# summary, so this assertion follows the checklist to where it actually lives.
+PIPELINE_SKILL="$REPO/shared/skills/design-pipeline/SKILL.md"
+assert_eq "the design-pipeline skill documents step 0 in the checklist template" "yes" \
+  "$(rg -q '^0\. laws-of-ux' "$PIPELINE_SKILL" && echo yes || echo no)"
+
+# CLAUDE.md must still point at the skill, or the move silently drops the rule
+# for any session that never thinks to look for it.
 CLAUDE_MD="$REPO/config/claude/CLAUDE.md"
-assert_eq "CLAUDE.md documents step 0 in the checklist template" "yes" \
-  "$(rg -q '^0\. laws-of-ux' "$CLAUDE_MD" && echo yes || echo no)"
+assert_eq "CLAUDE.md still routes UI work to the design-pipeline skill" "yes" \
+  "$(rg -q 'design-pipeline. skill' "$CLAUDE_MD" && echo yes || echo no)"
+
+assert_eq "CLAUDE.md still states the gate is blocking" "yes" \
+  "$(rg -q 'DESIGN_PIPELINE_OFF' "$CLAUDE_MD" && echo yes || echo no)"
 
 printf '\n%d passed, %d failed\n' "$pass" "$fail"
 [ "$fail" -eq 0 ]

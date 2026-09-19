@@ -776,7 +776,7 @@ distintos. Son la **capa de adaptación** entre cada herramienta y las skills co
 | Ruta | Contenido |
 | :--- | :--- |
 | `claude/CLAUDE.md` | Instrucciones globales: persona, TDD estricto, pipeline de diseño, adopción de gstack |
-| `claude/sdd-orchestrator.md` | Reglas de orquestación y delegación para SDD |
+| `shared/skills/sdd-orchestrator/` | Reglas de orquestación y delegación SDD — skill, no `@import`: 19 KB que antes se cargaban en cada turno |
 | `claude/settings.json` | Permisos, hooks, plugins y marketplaces |
 | `claude/agents/`, `commands/`, `hooks/`, `prompts/` | Subagentes, comandos y hooks |
 | `claude/themes/` | Temas de color propios, referenciados como `custom:<fichero>` |

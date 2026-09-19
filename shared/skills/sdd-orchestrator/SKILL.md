@@ -1,3 +1,14 @@
+---
+name: sdd-orchestrator
+description: >
+  SDD orchestration protocol: delegation triggers, the spec-driven phase chain
+  (explore/propose/spec/design/tasks/apply/verify/archive), per-phase model
+  assignments, sub-agent context rules, engram topic keys, the review workload
+  guard, and strict-TDD forwarding. Invoke when coordinating sub-agents, when
+  running any /sdd-* command, or when deciding whether to delegate work rather
+  than do it inline.
+---
+
 <!-- gentle-ai:sdd-orchestrator -->
 # Agent Teams Lite — Orchestrator Instructions
 
