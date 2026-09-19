@@ -1,0 +1,5 @@
+# Pin for the vendored ui-ux-pro-max reference skill. Regenerate with
+# scripts/uiux-sync.sh.
+upstream: https://github.com/nextlevelbuilder/ui-ux-pro-max-skill.git
+commit: de5f12b400775997d213524ef02a7c7d2746806f
+date: 2026-09-19

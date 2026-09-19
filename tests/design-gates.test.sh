@@ -88,5 +88,34 @@ if [ -f "$PIPELINE" ]; then
     "$(rg -q '^2\. gates' "$PIPELINE" && echo yes || echo no)"
 fi
 
+# --- the design reference skill ---------------------------------------------
+# ui-ux-pro-max is the reference oracle the pipeline's "direction" step reads.
+# It was installed as a loose copy in ~/.claude/skills — unversioned, invisible
+# to the manifest, and therefore never updated: measured 2026-09-19 it still
+# carried 97 palette rows against upstream's 193, 50 font pairings against 74,
+# and 9 stacks against 22. A skill nothing can update is a skill that rots.
+#
+# Vendoring it puts it under the same pin-and-sync discipline as the gates, and
+# the fanout carries it to OpenCode, which the loose copy never reached.
+
+UIUX="$REPO/shared/skills/ui-ux-pro-max"
+
+assert_eq "ui-ux-pro-max is vendored" "yes" \
+  "$([ -f "$UIUX/SKILL.md" ] && echo yes || echo no)"
+
+assert_eq "its pin is recorded" "yes" \
+  "$([ -f "$REPO/UIUX_PIN" ] && echo yes || echo no)"
+
+# The numbers, not the prose. A stale copy is caught by row counts even when the
+# SKILL.md text happens to match.
+if [ -f "$UIUX/data/colors.csv" ]; then
+  ROWS="$(wc -l <"$UIUX/data/colors.csv" | tr -d ' ')"
+  assert_eq "the palette data is the current set, not the 97-row copy ($ROWS rows)" "yes" \
+    "$([ "$ROWS" -gt 150 ] && echo yes || echo no)"
+fi
+
+assert_eq "the stale loose copy is gone from ~/.claude/skills" "yes" \
+  "$([ ! -e "$HOME/.claude/skills/ui-ux-pro-max" ] || [ -L "$HOME/.claude/skills/ui-ux-pro-max" ] && echo yes || echo no)"
+
 printf '\n%d passed, %d failed\n' "$pass" "$fail"
 [ "$fail" -eq 0 ]

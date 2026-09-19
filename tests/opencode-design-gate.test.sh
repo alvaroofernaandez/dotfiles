@@ -61,11 +61,23 @@ const FIVESTEP = `[design-pipeline]
 3. impeccable        → engaged
 4. design-motion-principles → 180ms`
 
-async function denies(emit: string | null): Promise<boolean> {
+type Emit = { text: string; role?: "assistant" | "user"; roleFirst?: boolean }
+
+// Drives the plugin the way OpenCode does: message.part.updated carries the
+// text (TextPart has messageID but NO role), message.updated carries the role.
+// `roleFirst` flips their order — the SDK guarantees no ordering between them.
+async function denies(emit: Emit | null): Promise<boolean> {
   const hooks: any = await (DesignGate as any)({ directory: "/tmp" })
   if (emit) {
-    await hooks.event({ event: { type: "message.part.updated",
-      properties: { part: { type: "text", sessionID: "s1", text: emit } } } })
+    const role = emit.role ?? "assistant"
+    const roleEvent = { event: { type: "message.updated",
+      properties: { info: { id: "m1", sessionID: "s1", role } } } }
+    const partEvent = { event: { type: "message.part.updated",
+      properties: { part: { type: "text", id: "p1", sessionID: "s1",
+                            messageID: "m1", text: emit.text } } } }
+    for (const e of emit.roleFirst ? [roleEvent, partEvent] : [partEvent, roleEvent]) {
+      await hooks.event(e)
+    }
   }
   try {
     await hooks["tool.execute.before"]({ tool: "edit", sessionID: "s1", callID: "c1" },
@@ -85,8 +97,10 @@ const out: Record<string, () => Promise<string> | string> = {
   "ck-five":     () => String(matchesChecklist(FIVESTEP)),
   "ck-prose":    () => String(matchesChecklist("we should run the [design-pipeline] first")),
   "deny-none":   async () => String(await denies(null)),
-  "allow-ck":    async () => String(await denies(FILLED)),
-  "deny-tpl":    async () => String(await denies(TEMPLATE)),
+  "allow-ck":    async () => String(await denies({ text: FILLED })),
+  "deny-tpl":    async () => String(await denies({ text: TEMPLATE })),
+  "deny-user":   async () => String(await denies({ text: FILLED, role: "user" })),
+  "allow-rev":   async () => String(await denies({ text: FILLED, roleFirst: true })),
 }
 console.log(await out[which]())
 PROBE
@@ -104,6 +118,16 @@ assert_eq "prose mentioning the marker does not"     "false" "$(run ck-prose)"
 assert_eq "a UI write with no checklist is denied"   "true"  "$(run deny-none)"
 assert_eq "a UI write after the checklist is allowed" "false" "$(run allow-ck)"
 assert_eq "the template does not open the gate"      "true"  "$(run deny-tpl)"
+
+# The discriminator. AGENTS.md reaches OpenCode as user-role context and carries
+# the checklist template verbatim (scripts/sync-agent-rules.sh puts it there),
+# so a checklist the USER wrote must not count as a run — exactly the filter the
+# bash hook needs for CLAUDE.md. TextPart carries no role, so the plugin has to
+# correlate part.messageID against the role from message.updated.
+assert_eq "a user-authored checklist does NOT open the gate" "true" "$(run deny-user)"
+
+# The SDK guarantees no ordering between the two events.
+assert_eq "the gate opens when the role event arrives first" "false" "$(run allow-rev)"
 
 printf '\n%d passed, %d failed\n' "$pass" "$fail"
 [ "$fail" -eq 0 ]

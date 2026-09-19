@@ -84,29 +84,65 @@ are both rejected. Afterwards run the gates and report their real output as
 
 To bypass deliberately, set DESIGN_PIPELINE_OFF=1.`
 
-/** Pull assistant text out of an event payload without assuming one shape. */
-function extract(event: any): { sessionID?: string; text?: string } {
-  const p = event?.properties ?? {}
-  const part = p.part ?? p.info ?? {}
-  const text =
-    typeof part.text === "string" ? part.text :
-    typeof p.text === "string" ? p.text :
-    undefined
-  return { sessionID: part.sessionID ?? p.sessionID ?? part.id, text }
-}
+/**
+ * Only ASSISTANT-authored text counts, and establishing that takes both events.
+ *
+ * `message.part.updated` carries the text as a TextPart — which has `id`,
+ * `sessionID`, `messageID` and `text`, but deliberately no role; the role lives
+ * on the Message, delivered separately by `message.updated` as
+ * `properties.info.role`.
+ *
+ * The discriminator matters here for the same reason it does in the bash gate:
+ * AGENTS.md reaches OpenCode as user-role context and, since
+ * scripts/sync-agent-rules.sh mirrors the blocking block into it, now contains
+ * the checklist template verbatim. Counting user text would let the instruction
+ * file open the gate on turn one, forever — the exact bug the Claude Code hook
+ * was built to avoid.
+ *
+ * The SDK promises no ordering between the two events, so a checklist whose
+ * role has not arrived yet is held as pending and resolved either way later.
+ */
 
 export const DesignGate: Plugin = async () => {
   // Sessions that have emitted a real checklist. Session-scoped, exactly like
   // the bash gate: one checklist opens the gate for the rest of the session,
   // which is what CLAUDE.md means by caching skill directives once per session.
   const emitted = new Set<string>()
+  // messageIDs already known to be assistant-authored.
+  const fromAssistant = new Set<string>()
+  // Checklists seen before their message's role arrived: messageID -> sessionID.
+  const pending = new Map<string, string>()
 
   return {
     event: async ({ event }: any) => {
-      if (event?.type !== "message.part.updated" && event?.type !== "message.updated") return
       try {
-        const { sessionID, text } = extract(event)
-        if (sessionID && text && matchesChecklist(text)) emitted.add(sessionID)
+        if (event?.type === "message.updated") {
+          const info = event.properties?.info
+          if (!info?.id) return
+          if (info.role === "assistant") {
+            fromAssistant.add(info.id)
+            const sid = pending.get(info.id)
+            if (sid) {
+              emitted.add(sid)
+              pending.delete(info.id)
+            }
+          } else {
+            // A user message can never open the gate; drop anything held for it.
+            pending.delete(info.id)
+          }
+          return
+        }
+
+        if (event?.type !== "message.part.updated") return
+        const part = event.properties?.part
+        if (part?.type !== "text" || typeof part.text !== "string") return
+        if (!matchesChecklist(part.text)) return
+
+        const sid = part.sessionID
+        const mid = part.messageID
+        if (!sid || !mid) return
+        if (fromAssistant.has(mid)) emitted.add(sid)
+        else pending.set(mid, sid)
       } catch {
         // Payload shape changed; stay quiet and fail open.
       }
