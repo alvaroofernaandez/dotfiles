@@ -33,9 +33,26 @@ REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 DEST="$REPO/shared/skills/design-gates"
 PIN_FILE="$REPO/P87_PIN"
 UPSTREAM="https://github.com/plugin87/ux-ui-agent-skills.git"
-SKILLS=(design-doctrine design-review design-qa a11y-audit design-tokens)
+# Five review skills (judge a surface) plus four refactor skills (improve one).
+# The split matters: design-gates began as review-only, which is good for saying
+# a screen is wrong and useless for making it right.
+SKILLS=(design-doctrine design-review design-qa a11y-audit design-tokens
+        redesign migrate-design-system design-component design-code)
 STATIC_GATES=(contrast.py validate_tokens.py validate_contrast.py lint_hardcodes.py
               validate_theme_refs.py check_no_emoji.py validate_component_spec.py)
+# Render gates need Playwright and its browser. They are vendored now because
+# design-component's contract is "You must screenshot the harness and inspect it
+# before claiming done" — vendoring that instruction without the scripts that
+# carry it out would ship an order to verify with no way to verify.
+RENDER_GATES=(verify_states.mjs axe_audit.mjs verify_focustrap.mjs verify_target_size.mjs
+              verify_keyboard.mjs verify_reduced_motion.mjs verify_rtl.mjs
+              verify_responsive.mjs verify_overflow.mjs verify_interactive.mjs
+              measure_render.mjs taste_audit.mjs slop_tells.mjs lint_intent.mjs)
+# Reference material the vendored skills route into by name. A skill whose first
+# instruction points at a file that is not there is the impeccable failure.
+REFERENCES=(workflows/redesign-audit.md taste/design-taste.md taste/aesthetic-systems.md
+            frameworks/adapter-protocol.md frameworks/react-tailwind.md
+            design-systems/interop-protocol.md design-systems/crosswalk.md)
 
 say() { printf '\033[36m%s\033[0m\n' "$*"; }
 
@@ -72,7 +89,40 @@ for g in "${STATIC_GATES[@]}"; do
       "$TMP/src/scripts/$g" >"$DEST/scripts/$g"
   chmod +x "$DEST/scripts/$g"
 done
+for g in "${RENDER_GATES[@]}"; do
+  [ -f "$TMP/src/scripts/$g" ] || continue
+  sed -e "s#node scripts/#node $ABS/scripts/#g" \
+      -e "s#python3 scripts/#python3 $ABS/scripts/#g" \
+      "$TMP/src/scripts/$g" >"$DEST/scripts/$g"
+
+  # Upstream launches Chrome by channel. Seven of these gates follow that with
+  # `.catch(() => chromium.launch())` and seven do not, so on a machine with the
+  # Playwright chromium but no desktop Google Chrome those seven throw:
+  #   browserType.launch: Chromium distribution 'chrome' is not found
+  # An uncaught launch error reads as "the tool is broken", unlike upstream's
+  # deliberate SKIPPED path. Add the fallback only where it is missing.
+  if rg -q "channel: *'chrome'" "$DEST/scripts/$g" 2>/dev/null &&
+     ! rg -q "channel: *'chrome' *\} *\) *\.catch" "$DEST/scripts/$g" 2>/dev/null; then
+    perl -0pi -e "s/(chromium\.launch\(\{\s*channel:\s*'chrome'\s*\}\))/\$1.catch(() => chromium.launch())/g" \
+      "$DEST/scripts/$g"
+  fi
+done
+
 cp "$TMP/src"/accessibility/*.md "$DEST/accessibility/" 2>/dev/null || true
+
+mkdir -p "$DEST/reference"
+for r in "${REFERENCES[@]}"; do
+  [ -f "$TMP/src/$r" ] || continue
+  mkdir -p "$DEST/reference/$(dirname "$r")"
+  sed -e "s#node scripts/#node $ABS/scripts/#g" \
+      -e "s#python3 scripts/#python3 $ABS/scripts/#g" \
+      "$TMP/src/$r" >"$DEST/reference/$r"
+done
+# The one design system from upstream's library of 138 that this setup targets.
+if [ -d "$TMP/src/design-systems/library/shadcn" ]; then
+  mkdir -p "$DEST/reference/design-systems/shadcn"
+  cp "$TMP/src"/design-systems/library/shadcn/*.md "$DEST/reference/design-systems/shadcn/" 2>/dev/null || true
+fi
 
 # The rewrite. `python3 scripts/x.py` -> `python3 <abs>/scripts/x.py`, using a
 # path that resolves through the symlink farm the manifest builds, so it works
@@ -177,6 +227,26 @@ render gates not run (Playwright not installed)
 A gate you did not run is reported as not run. Never as a pass.
 SKILL_EOF
 
+# --- the render gates need playwright to resolve -----------------------------
+# The .mjs gates do `await import('playwright')`, which Node resolves by walking
+# up from the script's own directory. A global npm install is therefore NOT
+# enough for ESM — there has to be a node_modules beside them. Linking rather
+# than installing keeps the ~300MB out of the repo, and doing it HERE rather
+# than by hand means it survives the `rm -rf "$DEST"` at the top of this script.
+#
+# Without it the gates print "playwright not installed — SKIPPED" and exit 0,
+# which is upstream's own guard against reporting green on nothing. Set
+# DS_REQUIRE_BROWSER=1 to turn that skip into a failure.
+GLOBAL_MODULES="$(npm root -g 2>/dev/null || true)"
+if [ -n "$GLOBAL_MODULES" ] && [ -d "$GLOBAL_MODULES/playwright" ]; then
+  mkdir -p "$DEST/node_modules"
+  ln -sfn "$GLOBAL_MODULES/playwright" "$DEST/node_modules/playwright"
+  [ -d "$GLOBAL_MODULES/playwright-core" ] &&     ln -sfn "$GLOBAL_MODULES/playwright-core" "$DEST/node_modules/playwright-core"
+  say "  linked playwright for the render gates"
+else
+  say "  playwright not installed globally — render gates will report SKIPPED"
+fi
+
 cat >"$PIN_FILE" <<PIN_EOF
 # Pin for the vendored design gates. Regenerate with scripts/p87-sync.sh.
 upstream: $UPSTREAM
@@ -185,4 +255,4 @@ date: $DATE
 vendored: ${SKILLS[*]}
 PIN_EOF
 
-say "vendored ${#SKILLS[@]} skills + ${#STATIC_GATES[@]} static gates at ${PIN:0:12} ($DATE)"
+say "vendored ${#SKILLS[@]} skills + ${#STATIC_GATES[@]} static + ${#RENDER_GATES[@]} render gates at ${PIN:0:12} ($DATE)"

@@ -235,6 +235,26 @@ Two things stay here because they must hold even before the skill loads:
   surface until the filled checklist has been emitted in this session. It scans
   sub-agent transcripts too. `DESIGN_PIPELINE_OFF=1` bypasses it deliberately.
 
+**Native interactive elements are NEVER acceptable.** No native date picker, no
+raw `<select>`, no `<datalist>`, no browser `<dialog>`, no `confirm()`/`alert()`.
+Always a custom shadcn/ui + Radix component. This holds in every project, for
+every framework, with no "just this once" — a native control cannot be styled
+consistently, renders differently on every OS, and is a hole in the shared
+primitive layer.
+
+Invoke the `design-refactor` skill for the replacement of each one, and enforce
+it rather than trusting it:
+
+```bash
+python3 ~/.claude/skills/design-refactor/scripts/lint_native_elements.py src/
+```
+
+It exits non-zero on any hit. `components/ui/**` is exempt, because that is
+where the Radix wrappers legitimately live. Text, email, password, number,
+search inputs and `<textarea>` stay native — shadcn's own `Input` wraps exactly
+those. The rule is about controls whose appearance and behaviour the browser
+owns.
+
 Never state a number you did not measure: a contrast ratio or a "WCAG pass"
 comes from running a gate and quoting its output, never from reading the code.
 A gate you did not run is reported as not run, never as a pass.

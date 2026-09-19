@@ -2,4 +2,4 @@
 upstream: https://github.com/plugin87/ux-ui-agent-skills.git
 commit: f2e2f7fcc5cb9d99bbd8ec5e0d75cebb98e21e7e
 date: 2026-09-16
-vendored: design-doctrine design-review design-qa a11y-audit design-tokens
+vendored: design-doctrine design-review design-qa a11y-audit design-tokens redesign migrate-design-system design-component design-code
