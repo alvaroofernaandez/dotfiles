@@ -36,6 +36,7 @@ SUITES=(
   "$REPO/tests/gstack-skills.test.sh"
   "$REPO/tests/design-pipeline.test.sh"
   "$REPO/tests/design-gates.test.sh"
+  "$REPO/tests/provenance.test.sh"
   "$REPO/tests/context-budget.test.sh"
   "$REPO/tests/agent-rules-sync.test.sh"
   "$REPO/tests/opencode-design-gate.test.sh"
