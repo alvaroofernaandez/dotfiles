@@ -200,6 +200,25 @@ For each sub-agent launch:
 2. Copy matching compact rule blocks into the sub-agent prompt as `## Project Standards (auto-resolved)`
 3. Inject BEFORE the sub-agent's task-specific instructions
 
+#### UI delegation carries the laws (MANDATORY)
+
+Any sub-agent that will touch a UI surface — `.tsx .jsx .vue .svelte .astro
+.css .scss .sass .less .styl .html` — gets the design pipeline named in its
+prompt, step 0 first:
+
+> You are editing a UI surface. Before writing code you MUST run the design
+> pipeline and emit the `[design-pipeline]` checklist, starting with
+> `0. laws-of-ux`: invoke the `laws-of-ux` skill, resolve which of the 30 Laws
+> of UX govern this surface, and state the number each one forces (target size,
+> option count, feedback budget). Read `.agents/DESIGN.md` first; it outranks
+> both the laws and your default taste. The PreToolUse gate denies your edit
+> without a filled five-line checklist.
+
+This is not optional context. The gate scans sub-agent transcripts, so a
+sub-agent that was never told to run the pipeline is a sub-agent whose every UI
+edit gets denied — and the documented reaction to an unsatisfiable gate is to
+route around it, not to run it.
+
 **Key rule**: inject compact rules TEXT, not paths. Sub-agents do NOT read SKILL.md files or the registry — rules arrive pre-digested. This is compaction-safe because each delegation re-reads the registry if the cache is lost.
 
 ### Skill Resolution Feedback

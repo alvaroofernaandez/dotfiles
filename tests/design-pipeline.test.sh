@@ -54,6 +54,7 @@ user_line() {
 }
 
 FILLED_CHECKLIST='[design-pipeline]
+0. laws-of-ux        → laws: Hick (3 nav items), Fitts (44px targets), Von Restorff (one accent)
 1. frontend-design   → intent: editorial, high-contrast, no gradients
 2. ui-ux-pro-max     → references: Inter/Fraunces, 8pt scale, bento grid
 2.5 design-shotgun   → direction already set in DESIGN.md
@@ -62,6 +63,7 @@ FILLED_CHECKLIST='[design-pipeline]
 
 # The unfilled template, verbatim from CLAUDE.md. Must never count as a run.
 TEMPLATE_CHECKLIST='[design-pipeline]
+0. laws-of-ux        → laws: <which laws govern this surface and how>
 1. frontend-design   → intent: <1 sentence direction>
 2. ui-ux-pro-max     → references: <palette / type / layout / pattern chosen>
 2.5 design-shotgun   → <variants explored + which won> or "direction already set in DESIGN.md"
@@ -198,6 +200,48 @@ mk_transcript "$PARTIALJSONL" "$(assistant_line "$PARTIAL")"
 assert_eq "a checklist missing steps 3 and 4 is denied" "deny" \
   "$(decision "$(run_hook Edit "$PROJ/src/Button.tsx" "$PARTIALJSONL" "$PROJ")")"
 
+# --- step 0: the Laws of UX ---------------------------------------------------
+# The 30 laws at lawsofux.com are constraints, not inspiration, so they are
+# resolved BEFORE art direction rather than checked afterwards: Hick's Law caps
+# how many nav items the direction may propose, Fitts's Law sets the minimum
+# target size, Jakob's Law decides whether a novel pattern is even allowed.
+# Running them after step 1 means discovering the direction was illegal once it
+# already exists — which is when it stops getting fixed.
+#
+# A four-line checklist is therefore the PRE-laws pipeline, and it has to be
+# denied, or every checklist written before this change keeps opening the gate
+# and step 0 is decoration on arrival.
+LEGACY="$(cat <<'EOF'
+[design-pipeline]
+1. frontend-design   → intent: editorial, high-contrast, no gradients
+2. ui-ux-pro-max     → references: Inter/Fraunces, 8pt scale, bento grid
+2.5 design-shotgun   → direction already set in DESIGN.md
+3. impeccable        → output director engaged
+4. design-motion-principles → motion plan: 180ms ease-out on hover only
+EOF
+)"
+LEGACYJSONL="$TMP/legacy.jsonl"
+mk_transcript "$LEGACYJSONL" "$(assistant_line "$LEGACY")"
+assert_eq "a checklist without step 0 laws-of-ux is denied" "deny" \
+  "$(decision "$(run_hook Edit "$PROJ/src/Button.tsx" "$LEGACYJSONL" "$PROJ")")"
+
+# The placeholder must be rejected for step 0 exactly as it is for steps 1, 2
+# and 4 — naming the step without naming the laws is the template echoed back.
+LAWS_TPL="$(cat <<'EOF'
+[design-pipeline]
+0. laws-of-ux        → laws: <which laws govern this surface and how>
+1. frontend-design   → intent: editorial, high-contrast
+2. ui-ux-pro-max     → references: Inter/Fraunces, 8pt scale
+2.5 design-shotgun   → direction already set in DESIGN.md
+3. impeccable        → output director engaged
+4. design-motion-principles → motion plan: 180ms ease-out
+EOF
+)"
+LAWSTPLJSONL="$TMP/laws-template.jsonl"
+mk_transcript "$LAWSTPLJSONL" "$(assistant_line "$LAWS_TPL")"
+assert_eq "an unfilled step 0 does not open the gate" "deny" \
+  "$(decision "$(run_hook Edit "$PROJ/src/Button.tsx" "$LAWSTPLJSONL" "$PROJ")")"
+
 assert_eq "non-UI source is untouched" "none" \
   "$(decision "$(run_hook Edit "$PROJ/main.go" "$EMPTY" "$PROJ")")"
 
@@ -228,7 +272,7 @@ assert_eq "an override env var fails open" "none" \
 # has to name the pipeline so the next action is to run it.
 DENY_REASON="$(run_hook Edit "$PROJ/src/Button.tsx" "$EMPTY" "$PROJ" \
   | jq -r '.hookSpecificOutput.permissionDecisionReason // ""')"
-for skill in frontend-design ui-ux-pro-max impeccable design-motion-principles; do
+for skill in laws-of-ux frontend-design ui-ux-pro-max impeccable design-motion-principles; do
   assert_eq "denial reason names $skill" "yes" \
     "$(printf '%s' "$DENY_REASON" | rg -q -- "$skill" && echo yes || echo no)"
 done
@@ -353,6 +397,69 @@ mk_transcript "$SESION4" "$(user_line 'sube el contraste')"
 
 assert_eq "no subagents directory leaves the gate denying" "deny" \
   "$(decision "$(run_hook Edit "$PROJ5/src/Button.tsx" "$SESION4" "$PROJ5")")"
+
+# --- the skill step 0 invokes -------------------------------------------------
+# The gate can demand the line; only the skill makes the line mean something.
+# It lives in shared/skills so the manifest's fanout installs it into every
+# agent's skills directory (Claude Code AND OpenCode) rather than just this one.
+
+LAWS_SKILL="$REPO/shared/skills/laws-of-ux/SKILL.md"
+
+assert_eq "the laws-of-ux skill exists" "yes" \
+  "$([ -f "$LAWS_SKILL" ] && echo yes || echo no)"
+
+if [ -f "$LAWS_SKILL" ]; then
+  assert_eq "the skill declares frontmatter name and description" "yes" \
+    "$(rg -q '^name: laws-of-ux$' "$LAWS_SKILL" && rg -q '^description:' "$LAWS_SKILL" \
+        && echo yes || echo no)"
+
+  # All 30 laws from lawsofux.com, verbatim names. A skill that quietly drops
+  # half of them is the failure this assertion exists to catch: the ones that
+  # get dropped are the unglamorous ones (Postel, Tesler, Parkinson) which are
+  # precisely the ones nobody applies from memory.
+  MISSING=""
+  while IFS= read -r law; do
+    rg -qF -- "$law" "$LAWS_SKILL" || MISSING="$MISSING $law"
+  done <<'LAWS'
+Aesthetic-Usability Effect
+Choice Overload
+Chunking
+Cognitive Bias
+Cognitive Load
+Doherty Threshold
+Fitts's Law
+Flow
+Goal-Gradient Effect
+Hick's Law
+Jakob's Law
+Law of Common Region
+Law of Proximity
+Law of Prägnanz
+Law of Similarity
+Law of Uniform Connectedness
+Mental Model
+Miller's Law
+Occam's Razor
+Paradox of the Active User
+Pareto Principle
+Parkinson's Law
+Peak-End Rule
+Postel's Law
+Selective Attention
+Serial Position Effect
+Tesler's Law
+Von Restorff Effect
+Working Memory
+Zeigarnik Effect
+LAWS
+  assert_eq "the skill carries all 30 laws" "" "$MISSING"
+fi
+
+# CLAUDE.md has to describe the step the gate enforces, or the two drift and
+# the model is told to run a four-step pipeline that a five-step gate denies.
+CLAUDE_MD="$REPO/config/claude/CLAUDE.md"
+assert_eq "CLAUDE.md documents step 0 in the checklist template" "yes" \
+  "$(rg -q '^0\. laws-of-ux' "$CLAUDE_MD" && echo yes || echo no)"
 
 printf '\n%d passed, %d failed\n' "$pass" "$fail"
 [ "$fail" -eq 0 ]

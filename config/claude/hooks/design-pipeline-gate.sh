@@ -3,12 +3,13 @@
 #
 # Why this exists
 # ---------------
-# The pipeline (frontend-design → ui-ux-pro-max → [design-shotgun] → impeccable
-# → design-motion-principles) called itself "STRICT" and "BLOCKING", but nothing
-# blocked. It was prose inside ~42 KB of always-on instructions, sitting next to
-# an SDD orchestrator that pushes the opposite way — "delegate ALL real work to
-# sub-agents" — and sub-agents start with a clean context, without the checklist.
-# A rule with no enforcement point is a reminder. This is the enforcement point.
+# The pipeline (laws-of-ux → frontend-design → ui-ux-pro-max → [design-shotgun]
+# → impeccable → design-motion-principles) called itself "STRICT" and
+# "BLOCKING", but nothing blocked. It was prose inside ~42 KB of always-on
+# instructions, sitting next to an SDD orchestrator that pushes the opposite
+# way — "delegate ALL real work to sub-agents" — and sub-agents start with a
+# clean context, without the checklist. A rule with no enforcement point is a
+# reminder. This is the enforcement point.
 #
 # What it does
 # ------------
@@ -28,7 +29,7 @@
 #   3. The marker alone does not count. The gate's first version matched on it,
 #      and the prose that DIAGNOSED the broken pipeline opened the gate: writing
 #      "[design-pipeline]" in a sentence was enough. A run has to carry the
-#      checklist's structure — the marker plus all four numbered skill lines.
+#      checklist's structure — the marker plus all five numbered skill lines.
 #      Talking about the pipeline is common; running it is the rare event, and
 #      the matcher has to tell them apart or it decays back into decoration.
 #
@@ -168,12 +169,14 @@ MATCHER='
   | select(.type == "text")
   | .text
   | select(contains("[design-pipeline]"))
+  | select(test("0\\.\\s*laws-of-ux"))
   | select(test("1\\.\\s*frontend-design"))
   | select(test("2\\.\\s*ui-ux-pro-max"))
   | select(test("3\\.\\s*impeccable"))
   | select(test("4\\.\\s*design-motion-principles"))
   | select(
-      (contains("<1 sentence direction>")
+      (contains("<which laws govern this surface and how>")
+       or contains("<1 sentence direction>")
        or contains("<palette / type / layout / pattern chosen>")
        or contains("<reason + curve>")) | not
     )
@@ -224,13 +227,20 @@ fi
 # The reason has to teach, not just refuse. A bare "denied" sends the model
 # looking for a way around the gate; naming the pipeline makes running it the
 # obvious next move.
-REASON="Blocked: $BASE is a UI surface and the 4-skill design pipeline has not run in this session.
+REASON="Blocked: $BASE is a UI surface and the 5-skill design pipeline has not run in this session.
 
 Before editing it:
   1. Read .agents/DESIGN.md — it is the source of truth and overrides default taste.
-  2. Run the pipeline: frontend-design → ui-ux-pro-max → (design-shotgun if the
-     direction is still open) → impeccable → design-motion-principles.
+  2. Run the pipeline: laws-of-ux → frontend-design → ui-ux-pro-max
+     → (design-shotgun if the direction is still open) → impeccable
+     → design-motion-principles.
   3. Emit the [design-pipeline] checklist with real content in each line.
+
+Step 0 is not a formality. laws-of-ux resolves the constraints the other four
+steps work inside: Hick's Law caps how many options the direction may offer,
+Fitts's Law sets the minimum target size, Jakob's Law decides whether a novel
+pattern is allowed at all. Name the specific laws governing THIS surface and
+what each one dictates — not the skill's name.
 
 Then this edit goes through. To bypass deliberately, set DESIGN_PIPELINE_OFF=1."
 

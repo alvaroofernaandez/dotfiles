@@ -129,14 +129,15 @@ Clean/Hexagonal/Screaming Architecture, testing, atomic design, container-presen
 
 ## Design Architecture (STRICT — BLOCKING for any UI/UX/Frontend work)
 
-This rule is **STRICT** and **BLOCKING**. No exceptions, no shortcuts, no "just a tiny tweak". If the requested change touches a component, a screen, a layout, a style, a token, copy that lives in a UI, an animation, a hover state, an empty state, an error state, a form, a button, a modal, a navbar, a sidebar, a card, a table, a chart, an icon system, spacing, color, typography, motion, accessibility, or ANY visible surface in any project — you MUST run the full 4-skill pipeline BEFORE writing a single line of code.
+This rule is **STRICT** and **BLOCKING**. No exceptions, no shortcuts, no "just a tiny tweak". If the requested change touches a component, a screen, a layout, a style, a token, copy that lives in a UI, an animation, a hover state, an empty state, an error state, a form, a button, a modal, a navbar, a sidebar, a card, a table, a chart, an icon system, spacing, color, typography, motion, accessibility, or ANY visible surface in any project — you MUST run the full 5-skill pipeline BEFORE writing a single line of code.
 
-If you skip even one of the 4 skills, that is a discipline failure. Treat every UI/UX request as a gate that does not open until the pipeline has run.
+If you skip even one of the 5 skills, that is a discipline failure. Treat every UI/UX request as a gate that does not open until the pipeline has run.
 
-### The 4-Skill Design Stack (mandatory order)
+### The 5-Skill Design Stack (mandatory order)
 
 | Order | Skill | Role | Cannot be skipped because… |
 | ----- | ----- | ---- | -------------------------- |
+| 0 | `laws-of-ux` | The 30 Laws of UX as binding constraints. Resolves which laws govern the surface and what number each one forces. | Without it the direction is set first and the laws get rationalised around instead of applied. |
 | 1 | `frontend-design` | Strategic direction & intent BEFORE code. Art direction, distinctive look. | Without it you fall into generic AI aesthetics. |
 | 2 | `ui-ux-pro-max` | Inspiration & reference: 50 styles, 21 palettes, 50 font pairings, 9 stacks, shadcn/ui MCP. | Without it you reinvent inferior versions of solved patterns. |
 | 2.5 | `design-shotgun` | **Conditional.** Generates 4–6 variants in parallel, opens a comparison board, records what was chosen via `~/.gstack/bin/gstack-taste-update`. | Only when the visual direction is not yet settled. Committing to the first idea is how a design ends up merely acceptable. |
@@ -149,6 +150,7 @@ Before producing ANY UI/UX output, emit a `[design-pipeline]` checklist confirmi
 
 ```
 [design-pipeline]
+0. laws-of-ux        → laws: <which laws govern this surface and how>
 1. frontend-design   → intent: <1 sentence direction>
 2. ui-ux-pro-max     → references: <palette / type / layout / pattern chosen>
 2.5 design-shotgun   → <variants explored + which won> or "direction already set in DESIGN.md"
@@ -173,8 +175,37 @@ with no `DESIGN.md` yet. Whatever wins gets written back into `DESIGN.md` in
 the same change; a taste memory that knows something the project file does not
 is exactly the divergence this rule exists to prevent.
 
+**On step 0 — the laws are constraints, not a review pass.** The 30 Laws of UX
+(<https://lawsofux.com>, Jon Yablonski) are resolved BEFORE art direction
+because they cap what the direction is allowed to propose. Hick's Law decides
+how many items the navigation may carry. Fitts's Law sets the floor on target
+size and where a destructive action may not sit. Jakob's Law decides whether a
+novel pattern is permitted at all. Working Memory decides what has to be carried
+across a screen boundary. Run them afterwards and you are auditing a direction
+that already exists — which is the point at which a violation stops getting
+fixed and starts getting argued with.
+
+Step 0 has to produce NUMBERS, not names. "laws-of-ux → applied" is the
+placeholder wearing a different hat; "Hick (5 nav items max), Fitts (44px
+targets, CTA on the bottom edge), Von Restorff (one accent, not colour-only)" is
+a run. The `laws-of-ux` skill carries the routing table from surface to
+governing laws, and `reference/laws.md` inside it holds all 30 verbatim.
+
+Where the laws and `DESIGN.md` disagree, `DESIGN.md` wins — it is the project's
+source of truth, and the same rule that governs step 2.5 governs this. Surface
+the conflict rather than silently resolving it: either the law is being traded
+away deliberately, which belongs in the Decision Log with its reason, or
+`DESIGN.md` is wrong and gets changed first.
+
+Several of these laws are persuasion mechanisms — Goal-Gradient, Zeigarnik,
+Choice Overload, Von Restorff, Cognitive Bias. They become dark patterns the
+moment they serve the business against the user's own goal. Endowed progress
+toward a purchase nobody asked for, a profile permanently "incomplete" to farm
+data, a cancel button hidden behind deliberate contrast failure. Use them to
+help someone finish what they came to do, and refuse them otherwise.
+
 Rules:
-- The 4 skills are MANDATORY even for "trivial" tweaks. A button color is not trivial — it is a token decision.
+- The 5 skills are MANDATORY even for "trivial" tweaks. A button color is not trivial — it is a token decision.
 - The ONLY exception is pure non-UI work (backend logic, infra, scripts with no UI surface). When in doubt → run the pipeline.
 - You may cache skill directives ONCE per session and reuse them, but the `[design-pipeline]` checklist MUST be emitted every time UI work begins, even with cached directives.
 - After the build, run `impeccable` audit pass. If motion was added, also run `design-motion-principles` in audit mode. Both audits MUST appear in the final output as `[design-audit]`.
@@ -197,9 +228,15 @@ What the gate will and will not accept:
 
 - The **marker alone is not enough.** The first version matched on
   `[design-pipeline]` anywhere, and the prose diagnosing this very bug opened
-  the gate. A run must carry all four numbered skill lines.
+  the gate. A run must carry all five numbered skill lines.
 - The **unfilled template is not a run.** A block still holding
-  `<1 sentence direction>` is the template echoed back.
+  `<1 sentence direction>` — or `<which laws govern this surface and how>` — is
+  the template echoed back.
+- **Step 0 is enforced like the rest.** A four-line checklist is the pre-laws
+  pipeline and is denied. This deliberately invalidates every checklist written
+  before the laws were added: grandfathering them would have left step 0 as
+  decoration from the day it shipped, which is the exact failure the rest of
+  this section exists to describe.
 - Only **assistant-authored** text counts. This file reaches the transcript as
   user-role content, so matching it would open the gate on turn one, forever.
 - **Tests are not design surfaces.** `*.test.tsx` and `*.spec.tsx` pass through:
@@ -265,7 +302,7 @@ Every project — without exception — MUST maintain a `DESIGN.md` file at `.ag
 ### When you MUST read or write DESIGN.md
 
 - **Read FIRST** at the start of ANY UI/UX/design/frontend task in a project. Treat its contents as binding constraints — they override your default taste.
-- **Create** `.agents/DESIGN.md` the FIRST time any UI work happens in a project that doesn't have one. Bootstrap it from the 4-skill pipeline output (intent + references + tokens + motion plan).
+- **Create** `.agents/DESIGN.md` the FIRST time any UI work happens in a project that doesn't have one. Bootstrap it from the 5-skill pipeline output (governing laws + intent + references + tokens + motion plan).
 - **Update incrementally** every time a new design decision is made: a token added, a palette refined, a component pattern locked, a motion curve standardized, a typography scale chosen, an anti-pattern banned. Append or upsert — never silently overwrite history; if a decision supersedes a previous one, mark the previous entry as superseded.
 - **Cite it** in every design output: which sections of `DESIGN.md` governed the decisions you just made.
 
