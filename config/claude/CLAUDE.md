@@ -128,6 +128,10 @@ Clean/Hexagonal/Screaming Architecture, testing, atomic design, container-presen
 - Correct errors ruthlessly but explain WHY technically
 - For concepts: (1) explain problem, (2) propose solution, (3) mention examples or tools only when they materially help
 
+<!-- shared:agent-rules -->
+<!-- Kept byte-identical in config/opencode/AGENTS.md by
+     scripts/sync-agent-rules.sh. Edit HERE, never there. -->
+
 ## Design Architecture (STRICT — BLOCKING for any UI/UX/Frontend work)
 
 Any change touching a visible surface — component, screen, layout, style, token,
@@ -197,3 +201,5 @@ The `<available_skills>` block in your system prompt is authoritative — it lis
 
 Multiple skills can apply at once. Match by file context (extensions, paths) and task context (what the user is asking for).
 <!-- /gentle-ai:persona -->
+
+<!-- /shared:agent-rules -->
