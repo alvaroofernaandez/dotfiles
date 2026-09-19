@@ -134,9 +134,10 @@ Any change touching a visible surface — component, screen, layout, style, toke
 UI copy, animation, empty/error state, form, chart, spacing, colour, typography,
 motion, accessibility — is BLOCKED until the design pipeline has run.
 
-**Invoke the `design-pipeline` skill before writing a single line of UI code.**
-It carries the mandatory skill order, the `[design-pipeline]` checklist, the
-`DESIGN.md` contract and its schema.
+**Invoke the `design-pipeline` skill before writing a single line of UI code**,
+and `design-gates` after, to prove the result with measured output rather than
+a claim. The pipeline is three steps — laws, direction, gates — and the skill
+carries the checklist, the `DESIGN.md` contract and its schema.
 
 Two things stay here because they must hold even before the skill loads:
 
@@ -147,6 +148,10 @@ Two things stay here because they must hold even before the skill loads:
   runs on every `Edit`/`Write`/`NotebookEdit` and **denies** the call on a UI
   surface until the filled checklist has been emitted in this session. It scans
   sub-agent transcripts too. `DESIGN_PIPELINE_OFF=1` bypasses it deliberately.
+
+Never state a number you did not measure: a contrast ratio or a "WCAG pass"
+comes from running a gate and quoting its output, never from reading the code.
+A gate you did not run is reported as not run, never as a pass.
 
 Never ship generic AI aesthetics. Motion needs a stated reason or it is removed.
 

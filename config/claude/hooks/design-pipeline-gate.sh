@@ -3,8 +3,7 @@
 #
 # Why this exists
 # ---------------
-# The pipeline (laws-of-ux → frontend-design → ui-ux-pro-max → [design-shotgun]
-# → impeccable → design-motion-principles) called itself "STRICT" and
+# The pipeline (laws-of-ux → direction → gates) called itself "STRICT" and
 # "BLOCKING", but nothing blocked. It was prose inside ~42 KB of always-on
 # instructions, sitting next to an SDD orchestrator that pushes the opposite
 # way — "delegate ALL real work to sub-agents" — and sub-agents start with a
@@ -14,8 +13,14 @@
 # What it does
 # ------------
 # Denies Edit/Write on a UI surface until the [design-pipeline] checklist has
-# actually been emitted by the assistant in this session, and repairs the one
-# prerequisite that made step 3 impossible to run (see --provision below).
+# actually been emitted by the assistant in this session.
+#
+# It used to also symlink a vendored `impeccable` into each project, because
+# that skill's SKILL.md ran a project-relative path against a global install and
+# raised "Cannot find module" in every repo. impeccable left the pipeline on
+# 2026-09-19 — it had never actually run, halting on NO_PRODUCT_MD in every
+# project — so the provisioning went with it rather than keep seeding symlinks
+# for a skill nothing invokes.
 #
 # Reading the transcript is the only way to know whether the checklist was
 # emitted, and it has one trap: CLAUDE.md carries the literal string
@@ -29,7 +34,7 @@
 #   3. The marker alone does not count. The gate's first version matched on it,
 #      and the prose that DIAGNOSED the broken pipeline opened the gate: writing
 #      "[design-pipeline]" in a sentence was enough. A run has to carry the
-#      checklist's structure — the marker plus all five numbered skill lines.
+#      checklist's structure — the marker plus all three numbered steps.
 #      Talking about the pipeline is common; running it is the rare event, and
 #      the matcher has to tell them apart or it decays back into decoration.
 #
@@ -43,68 +48,6 @@
 # Tests: tests/design-pipeline.test.sh
 
 set -uo pipefail
-
-# --- provisioning ------------------------------------------------------------
-# impeccable's SKILL.md opens with "You MUST do these steps before proceeding",
-# and step 1 is:
-#
-#     node .agents/skills/impeccable/scripts/context.mjs
-#
-# a PROJECT-relative path. The skill is installed globally, at
-# ~/.agents/skills/impeccable, so in every project that command raised
-#
-#     Error: Cannot find module '<project>/.agents/skills/impeccable/scripts/context.mjs'
-#
-# and step 3 of the pipeline could never run — not once, in any repo. impeccable
-# is built to be vendored per project; installing it globally is what broke it.
-#
-# Rather than patch an upstream file this repo does not version (the edit would
-# be invisible to git and wiped by the next reinstall), give each project the
-# vendor path the skill expects, pointing at the global install. Idempotent, and
-# it never touches a project that genuinely vendors its own copy.
-provision_impeccable() {
-  local project="$1"
-  local src="${HOME}/.agents/skills/impeccable"
-  local dest="$project/.agents/skills/impeccable"
-
-  [ -d "$src" ] || return 0
-  [ -e "$dest" ] || [ -L "$dest" ] && return 0
-
-  mkdir -p "$(dirname "$dest")" 2>/dev/null || return 0
-  ln -s "$src" "$dest" 2>/dev/null || return 0
-}
-
-if [ "${1:-}" = "--provision" ]; then
-  [ -n "${2:-}" ] && provision_impeccable "$2"
-  exit 0
-fi
-
-# --- impeccable's other blocker ----------------------------------------------
-# With its vendor path repaired, impeccable's context script still halts on a
-# project with no PRODUCT.md:
-#
-#     NO_PRODUCT_MD: ... Stop the current task, load reference/init.md, and
-#     follow its instructions before resuming.
-#
-# That abort lands MID-PIPELINE, at step 3, after steps 1 and 2 have already
-# done their work. Nothing here can write the file for you: impeccable's own
-# init.md requires a real interview and says in as many words not to infer one.
-# What the gate can do is say so in the denial, which is read before the
-# pipeline starts instead of three skills into it.
-#
-# Search order mirrors impeccable's own: project root, .agents/context/, docs/.
-has_product_md() {
-  local project="$1" dir
-  for dir in "$project" "$project/.agents/context" "$project/docs"; do
-    [ -d "$dir" ] || continue
-    # -maxdepth keeps this from walking node_modules; -iname matches the
-    # case-insensitive lookup impeccable documents.
-    if [ -n "$(find "$dir" -maxdepth 1 -iname 'PRODUCT.md' -print -quit 2>/dev/null)" ]; then
-      return 0
-    fi
-  done
-  return 1
-}
 
 # --- bypasses ----------------------------------------------------------------
 
@@ -150,9 +93,6 @@ case "$FILE" in
   *) exit 0 ;;
 esac
 
-# A UI edit is coming. Make sure step 3 can actually run when it is reached.
-[ -n "$CWD" ] && provision_impeccable "$CWD"
-
 # --- has the pipeline run? ---------------------------------------------------
 
 [ -n "$TRANSCRIPT" ] && [ -r "$TRANSCRIPT" ] || {
@@ -170,15 +110,12 @@ MATCHER='
   | .text
   | select(contains("[design-pipeline]"))
   | select(test("0\\.\\s*laws-of-ux"))
-  | select(test("1\\.\\s*frontend-design"))
-  | select(test("2\\.\\s*ui-ux-pro-max"))
-  | select(test("3\\.\\s*impeccable"))
-  | select(test("4\\.\\s*design-motion-principles"))
+  | select(test("1\\.\\s*direction"))
+  | select(test("2\\.\\s*gates"))
   | select(
-      (contains("<which laws govern this surface and how>")
-       or contains("<1 sentence direction>")
-       or contains("<palette / type / layout / pattern chosen>")
-       or contains("<reason + curve>")) | not
+      (contains("<which laws govern this surface, with the number each forces>")
+       or contains("<DESIGN.md section, or ui-ux-pro-max/design-shotgun outcome>")
+       or contains("<which design-gates checks will run after the code exists>")) | not
     )
   | "EMITTED"
 '
@@ -227,31 +164,25 @@ fi
 # The reason has to teach, not just refuse. A bare "denied" sends the model
 # looking for a way around the gate; naming the pipeline makes running it the
 # obvious next move.
-REASON="Blocked: $BASE is a UI surface and the 5-skill design pipeline has not run in this session.
+REASON="Blocked: $BASE is a UI surface and the design pipeline has not run in this session.
 
-Before editing it:
-  1. Read .agents/DESIGN.md — it is the source of truth and overrides default taste.
-  2. Run the pipeline: laws-of-ux → frontend-design → ui-ux-pro-max
-     → (design-shotgun if the direction is still open) → impeccable
-     → design-motion-principles.
-  3. Emit the [design-pipeline] checklist with real content in each line.
+Before editing it, invoke the design-pipeline skill and emit its checklist:
 
-Step 0 is not a formality. laws-of-ux resolves the constraints the other four
-steps work inside: Hick's Law caps how many options the direction may offer,
-Fitts's Law sets the minimum target size, Jakob's Law decides whether a novel
-pattern is allowed at all. Name the specific laws governing THIS surface and
-what each one dictates — not the skill's name.
+  0. laws-of-ux    -> which of the 30 Laws of UX govern THIS surface, and the
+                      number each one forces (Hick caps the option count, Fitts
+                      the target size, Jakob whether a novel pattern is allowed).
+  1. direction     -> the .agents/DESIGN.md section that settles it, or the
+                      ui-ux-pro-max / design-shotgun outcome if it is still open.
+                      DESIGN.md outranks your default taste; read it first.
+  2. gates         -> which design-gates checks will run once the code exists.
 
-Then this edit goes through. To bypass deliberately, set DESIGN_PIPELINE_OFF=1."
+Name real content in each line. The skill names alone do not count, and the
+template placeholders are rejected.
 
-if [ -n "$CWD" ] && ! has_product_md "$CWD"; then
-  REASON="$REASON
+After the edit, run the gates and report their real output as [design-audit].
+A gate you did not run is reported as not run, never as a pass.
 
-Heads-up before you start: this project has no PRODUCT.md, and impeccable
-(step 3) halts on NO_PRODUCT_MD rather than running. Write it first — via
-impeccable's init flow, which interviews you for it — or steps 1 and 2 will be
-spent before the pipeline stops."
-fi
+To bypass deliberately, set DESIGN_PIPELINE_OFF=1."
 
 jq -n --arg reason "$REASON" '{
   hookSpecificOutput: {

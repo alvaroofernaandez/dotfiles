@@ -54,21 +54,15 @@ user_line() {
 }
 
 FILLED_CHECKLIST='[design-pipeline]
-0. laws-of-ux        → laws: Hick (3 nav items), Fitts (44px targets), Von Restorff (one accent)
-1. frontend-design   → intent: editorial, high-contrast, no gradients
-2. ui-ux-pro-max     → references: Inter/Fraunces, 8pt scale, bento grid
-2.5 design-shotgun   → direction already set in DESIGN.md
-3. impeccable        → output director engaged
-4. design-motion-principles → motion plan: 180ms ease-out on hover only'
+0. laws-of-ux    → laws: Hick (5 nav items max), Fitts (44px targets), Von Restorff (one accent)
+1. direction     → DESIGN.md §2 tokens; Inter/Fraunces, 8pt scale, bento grid
+2. gates         → contrast on the new accent pair, hardcodes on Button.tsx'
 
 # The unfilled template, verbatim from CLAUDE.md. Must never count as a run.
 TEMPLATE_CHECKLIST='[design-pipeline]
-0. laws-of-ux        → laws: <which laws govern this surface and how>
-1. frontend-design   → intent: <1 sentence direction>
-2. ui-ux-pro-max     → references: <palette / type / layout / pattern chosen>
-2.5 design-shotgun   → <variants explored + which won> or "direction already set in DESIGN.md"
-3. impeccable        → output director engaged (hierarchy/spacing/taste rules cached)
-4. design-motion-principles → motion plan: <reason + curve> or "no motion needed"'
+0. laws-of-ux    → laws: <which laws govern this surface, with the number each forces>
+1. direction     → <DESIGN.md section, or ui-ux-pro-max/design-shotgun outcome>
+2. gates         → <which design-gates checks will run after the code exists>'
 
 mk_transcript() { # $1 = out path, rest = jsonl lines
   local out="$1"; shift
@@ -101,43 +95,22 @@ if [ ! -x "$HOOK" ]; then
   exit 1
 fi
 
-# --- provisioning: impeccable's per-project vendor path ----------------------
-# impeccable's own SKILL.md opens with "You MUST do these steps before
-# proceeding" and step 1 runs `node .agents/skills/impeccable/scripts/context.mjs`
-# — a PROJECT-relative path. The skill is installed globally at
-# ~/.agents/skills/impeccable, so that command raised
-# "Cannot find module .../<project>/.agents/skills/impeccable/scripts/context.mjs"
-# in every project, and step 3 of the pipeline could never run.
+# --- why there is no provisioning block here any more ----------------------
+# This suite used to assert that the hook symlinked a vendored `impeccable` into
+# each project, because that skill invoked `node .agents/skills/impeccable/
+# scripts/context.mjs` — a project-relative path against a global install — and
+# so raised "Cannot find module" in every repo.
 #
-# The fix satisfies the skill's own contract instead of editing it: give each
-# project the vendor path it expects, as a link to the global install.
-
-HOME_SKILL="$TMP/fake-home/.agents/skills/impeccable"
-mkdir -p "$HOME_SKILL/scripts"
-echo "console.log('ok')" >"$HOME_SKILL/scripts/context.mjs"
+# impeccable left the pipeline on 2026-09-19. The reason is worth keeping: a
+# search of the whole machine found zero PRODUCT.md files, and impeccable halts
+# on NO_PRODUCT_MD, so step 3 of five had aborted in every project for as long
+# as it was installed and nothing surfaced it. That is the failure mode of a
+# pipeline built on self-report — it has no way to report that a step never ran.
+# The gates in tests/design-gates.test.sh replace it with something that exits
+# non-zero.
 
 PROJ="$TMP/proj"
 mkdir -p "$PROJ"
-
-HOME="$TMP/fake-home" "$HOOK" --provision "$PROJ" >/dev/null 2>&1
-assert_eq "--provision links the project vendor path" "yes" \
-  "$([ -L "$PROJ/.agents/skills/impeccable" ] && echo yes || echo no)"
-assert_eq "--provision makes impeccable's step 1 script resolvable" "yes" \
-  "$([ -f "$PROJ/.agents/skills/impeccable/scripts/context.mjs" ] && echo yes || echo no)"
-
-# Run twice: the hook fires on every UI edit, so a non-idempotent provision
-# would either error or stack symlinks inside symlinks.
-HOME="$TMP/fake-home" "$HOOK" --provision "$PROJ" >/dev/null 2>&1
-assert_eq "--provision is idempotent" "yes" \
-  "$([ -L "$PROJ/.agents/skills/impeccable" ] && echo yes || echo no)"
-
-# A project that genuinely vendors impeccable must keep its own copy.
-PROJ2="$TMP/proj2"
-mkdir -p "$PROJ2/.agents/skills/impeccable/scripts"
-echo "local" >"$PROJ2/.agents/skills/impeccable/scripts/context.mjs"
-HOME="$TMP/fake-home" "$HOOK" --provision "$PROJ2" >/dev/null 2>&1
-assert_eq "--provision never clobbers a real vendored copy" "local" \
-  "$(cat "$PROJ2/.agents/skills/impeccable/scripts/context.mjs")"
 
 # --- enforcement -------------------------------------------------------------
 
@@ -220,6 +193,23 @@ LEGACY="$(cat <<'EOF'
 4. design-motion-principles → motion plan: 180ms ease-out on hover only
 EOF
 )"
+
+# The five-step advisory form is legacy too: impeccable and frontend-design are
+# no longer in the pipeline, so a checklist naming them describes a run that
+# cannot have happened.
+FIVESTEP="$(cat <<'EOF'
+[design-pipeline]
+0. laws-of-ux        → laws: Hick (5 nav items), Fitts (44px)
+1. frontend-design   → intent: editorial, high-contrast
+2. ui-ux-pro-max     → references: Inter, 8pt scale
+3. impeccable        → output director engaged
+4. design-motion-principles → motion plan: 180ms ease-out
+EOF
+)"
+FIVEJSONL="$TMP/fivestep.jsonl"
+mk_transcript "$FIVEJSONL" "$(assistant_line "$FIVESTEP")"
+assert_eq "the old five-step checklist no longer opens the gate" "deny" \
+  "$(decision "$(run_hook Edit "$PROJ/src/Button.tsx" "$FIVEJSONL" "$PROJ")")"
 LEGACYJSONL="$TMP/legacy.jsonl"
 mk_transcript "$LEGACYJSONL" "$(assistant_line "$LEGACY")"
 assert_eq "a checklist without step 0 laws-of-ux is denied" "deny" \
@@ -229,12 +219,9 @@ assert_eq "a checklist without step 0 laws-of-ux is denied" "deny" \
 # and 4 — naming the step without naming the laws is the template echoed back.
 LAWS_TPL="$(cat <<'EOF'
 [design-pipeline]
-0. laws-of-ux        → laws: <which laws govern this surface and how>
-1. frontend-design   → intent: editorial, high-contrast
-2. ui-ux-pro-max     → references: Inter/Fraunces, 8pt scale
-2.5 design-shotgun   → direction already set in DESIGN.md
-3. impeccable        → output director engaged
-4. design-motion-principles → motion plan: 180ms ease-out
+0. laws-of-ux    → laws: <which laws govern this surface, with the number each forces>
+1. direction     → DESIGN.md §2 tokens
+2. gates         → contrast on the accent pair
 EOF
 )"
 LAWSTPLJSONL="$TMP/laws-template.jsonl"
@@ -272,44 +259,12 @@ assert_eq "an override env var fails open" "none" \
 # has to name the pipeline so the next action is to run it.
 DENY_REASON="$(run_hook Edit "$PROJ/src/Button.tsx" "$EMPTY" "$PROJ" \
   | jq -r '.hookSpecificOutput.permissionDecisionReason // ""')"
-for skill in laws-of-ux frontend-design ui-ux-pro-max impeccable design-motion-principles; do
+for skill in laws-of-ux design-gates DESIGN.md; do
   assert_eq "denial reason names $skill" "yes" \
     "$(printf '%s' "$DENY_REASON" | rg -q -- "$skill" && echo yes || echo no)"
 done
 assert_eq "denial reason names the override" "yes" \
   "$(printf '%s' "$DENY_REASON" | rg -q -- 'DESIGN_PIPELINE_OFF' && echo yes || echo no)"
-
-# --- impeccable's second blocker: PRODUCT.md ---------------------------------
-# Even with its vendor path repaired, impeccable's context script halts:
-#
-#     NO_PRODUCT_MD: This project has no PRODUCT.md yet. Stop the current task,
-#     load reference/init.md, and follow its instructions before resuming.
-#
-# So step 3 aborts the task MID-PIPELINE — after steps 1 and 2 have already
-# spent their work. impeccable's init.md is explicit that PRODUCT.md comes from
-# a real interview ("Do NOT turn a one-sentence request into a complete inferred
-# PRODUCT.md"), so nothing here can write it. What the gate CAN do is surface
-# the blocker in the denial, which is read BEFORE the pipeline starts rather
-# than three skills into it.
-assert_eq "denial names PRODUCT.md when the project has none" "yes" \
-  "$(printf '%s' "$DENY_REASON" | rg -q -- 'PRODUCT\.md' && echo yes || echo no)"
-
-PROJ3="$TMP/proj3"
-mkdir -p "$PROJ3"
-printf '# PRODUCT.md\n' >"$PROJ3/PRODUCT.md"
-REASON3="$(run_hook Edit "$PROJ3/src/Button.tsx" "$EMPTY" "$PROJ3" \
-  | jq -r '.hookSpecificOutput.permissionDecisionReason // ""')"
-assert_eq "denial stays quiet about PRODUCT.md when it exists" "no" \
-  "$(printf '%s' "$REASON3" | rg -q -- 'PRODUCT\.md' && echo yes || echo no)"
-
-# impeccable also accepts it under .agents/context/ and docs/.
-PROJ4="$TMP/proj4"
-mkdir -p "$PROJ4/.agents/context"
-printf '# PRODUCT.md\n' >"$PROJ4/.agents/context/PRODUCT.md"
-REASON4="$(run_hook Edit "$PROJ4/src/Button.tsx" "$EMPTY" "$PROJ4" \
-  | jq -r '.hookSpecificOutput.permissionDecisionReason // ""')"
-assert_eq "PRODUCT.md under .agents/context counts" "no" \
-  "$(printf '%s' "$REASON4" | rg -q -- 'PRODUCT\.md' && echo yes || echo no)"
 
 # --- wiring ------------------------------------------------------------------
 # The hook is inert unless settings.json calls it. This is the assertion that
