@@ -155,3 +155,7 @@ add-zsh-hook chpwd _sidebar_follow_cwd
 export PATH="$(go env GOPATH)/bin:$PATH"
 
 
+
+
+# Added by Antigravity CLI installer
+export PATH="/Users/alvaroofernaandez/.local/bin:$PATH"
