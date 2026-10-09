@@ -353,6 +353,42 @@ mk_transcript "$SESION4" "$(user_line 'sube el contraste')"
 assert_eq "no subagents directory leaves the gate denying" "deny" \
   "$(decision "$(run_hook Edit "$PROJ5/src/Button.tsx" "$SESION4" "$PROJ5")")"
 
+# --- checklists carried inside tool calls -------------------------------------
+# Measured 2026-10-05: some assistant text blocks never reach the transcript
+# (two checklists emitted as plain text in one session were absent from the
+# .jsonl while the text around them was saved), so a run that happened looked
+# like no run. Tool calls are always persisted, and a checklist the assistant
+# writes into a tool input (the brief of a sub-agent, for instance) is just as
+# assistant-authored. These tests pin both sides: the filled checklist inside a
+# tool_use input opens the gate; the template, or the same text in a
+# user-role tool_result, does not.
+
+tool_use_line() {
+  jq -cn --arg t "$1" \
+    '{type:"assistant", message:{role:"assistant", content:[{type:"tool_use", name:"Agent", input:{prompt:$t}}]}}'
+}
+tool_result_line() {
+  jq -cn --arg t "$1" \
+    '{type:"user", message:{role:"user", content:[{type:"tool_result", content:$t}]}}'
+}
+
+PROJ6="$TMP/proj6"
+mkdir -p "$PROJ6/src"
+TOOLUSE="$TMP/tooluse.jsonl"
+mk_transcript "$TOOLUSE" "$(tool_use_line "Brief for the writer. $FILLED_CHECKLIST")"
+assert_eq "a filled checklist inside a tool_use input opens the gate" "none" \
+  "$(decision "$(run_hook Edit "$PROJ6/src/Button.tsx" "$TOOLUSE" "$PROJ6")")"
+
+TOOLUSE_TPL="$TMP/tooluse-template.jsonl"
+mk_transcript "$TOOLUSE_TPL" "$(tool_use_line "$TEMPLATE_CHECKLIST")"
+assert_eq "the template inside a tool_use input does not open the gate" "deny" \
+  "$(decision "$(run_hook Edit "$PROJ6/src/Button.tsx" "$TOOLUSE_TPL" "$PROJ6")")"
+
+TOOLRESULT="$TMP/toolresult.jsonl"
+mk_transcript "$TOOLRESULT" "$(tool_result_line "$FILLED_CHECKLIST")"
+assert_eq "a checklist in a tool_result (user role) does not open the gate" "deny" \
+  "$(decision "$(run_hook Edit "$PROJ6/src/Button.tsx" "$TOOLRESULT" "$PROJ6")")"
+
 # --- the skill step 0 invokes -------------------------------------------------
 # The gate can demand the line; only the skill makes the line mean something.
 # It lives in shared/skills so the manifest's fanout installs it into every

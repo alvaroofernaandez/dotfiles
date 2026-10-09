@@ -102,12 +102,20 @@ esac
 
 # -R + fromjson? tolerates a truncated or malformed line rather than aborting
 # the whole scan; a half-written last line is normal in a live transcript.
+#
+# Tool inputs count as well as text. Measured 2026-10-05: some assistant text
+# blocks never reach the transcript (two plain-text checklists in one session
+# were missing from the .jsonl while the text around them was saved), so a run
+# that happened read as no run. Tool calls are always persisted, and a checklist
+# the assistant writes into a tool input (a sub-agent's brief, say) is just as
+# assistant-authored. Tool results stay out: they are user-role lines.
 MATCHER='
   fromjson? // empty
   | select(.type == "assistant")
   | .message.content[]?
-  | select(.type == "text")
-  | .text
+  | if .type == "text" then .text
+    elif .type == "tool_use" then (.input | tostring)
+    else empty end
   | select(contains("[design-pipeline]"))
   | select(test("0\\.\\s*laws-of-ux"))
   | select(test("1\\.\\s*direction"))
