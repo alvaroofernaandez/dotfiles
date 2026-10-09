@@ -65,7 +65,7 @@ config/claude/themes               .claude/themes
 
 [opencode]
 label = OpenCode
-detail = Config, agents, commands, plugins, profiles and prompts
+detail = Config, agents, commands, plugins and profiles
 platforms = all
 
 config/opencode/opencode.json      .config/opencode/opencode.json
@@ -76,7 +76,6 @@ config/opencode/commands           .config/opencode/commands
 config/opencode/plugin             .config/opencode/plugin
 config/opencode/plugins            .config/opencode/plugins
 config/opencode/profiles           .config/opencode/profiles
-config/opencode/prompts            .config/opencode/prompts
 
 [skills]
 label = Agent skills
