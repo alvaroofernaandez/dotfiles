@@ -1,6 +1,6 @@
 ---
 name: chained-pr
-description: "Trigger: PRs over 400 production lines, stacked PRs, review slices. Split oversized changes into chained PRs that protect review focus."
+description: "Trigger: PRs over 400 lines, stacked PRs, review slices. Split oversized changes into chained PRs that protect review focus."
 license: Apache-2.0
 metadata:
   author: gentleman-programming
@@ -9,35 +9,13 @@ metadata:
 
 ## Activation Contract
 
-Load this skill when a planned PR may exceed **400 production lines**, SDD forecasts `400-line budget risk: High` or `Chained PRs recommended: Yes`, or the user asks for chained/stacked PRs, review slices, or reviewer-load control.
-
-## Budget Definition
-
-The budget counts **production lines only**: `additions + deletions` over files that
-are not tests. **Test files never count against it.**
-
-A budget that charges for tests pushes in the opposite direction to the one it
-exists for. Reviewing a test costs a fraction of reviewing the logic it covers, and
-a rule that taxes them teaches the author to write fewer.
-
-Not counted: `*.test.*`, `*.spec.*`, and anything under `__tests__/`, `tests/` or
-`e2e/`, plus generated files, vendored code and lockfiles.
-
-Measure it, never estimate it. Estimating by eye is how a 611-line PR gets called
-"about 400":
-
-```bash
-git diff --numstat <base> <head> \
-  | rg -v '\.(test|spec)\.|/(__tests__|tests|e2e)/|lock\.(json|yaml)$' \
-  | awk '{a+=$1; d+=$2} END {print a+d}'
-```
-
-Deletions count. A commit that moves 300 lines out of one file and into another is
-600 lines a reviewer has to read to confirm nothing changed on the way.
+Load this skill when a planned PR may exceed **400 changed lines**, SDD forecasts `400-line budget risk: High` or `Chained PRs recommended: Yes`, an ODD feature's forecast or running authored changed-line count from work-unit commits exceeds about 400, or the user asks for chained/stacked PRs, review slices, or reviewer-load control.
 
 ## Hard Rules
 
-- Split PRs over **400 production lines** unless a maintainer explicitly accepts `size:exception`.
+- Split PRs over **400 changed lines** unless a maintainer explicitly accepts `size:exception`.
+- The budget constrains how work is **sliced**, never the code itself. Never delete comments, blank lines, docs, or tests, and never compress or restyle code, to fit under the budget.
+- Slicing is bounded: make **one** honest slicing pass. If no cohesive split brings every slice within budget, stop iterating, keep the best cohesive split, and report the final line count with a `size:exception` recommendation.
 - Keep each PR reviewable in about **≤60 minutes**.
 - Use one deliverable work unit per PR; keep tests/docs with the unit they verify.
 - State start, end, prior dependencies, follow-up work, and out-of-scope items in every chained PR.
@@ -50,15 +28,17 @@ Deletions count. A commit that moves 300 lines out of one file and into another 
 
 | Condition | Action |
 |---|---|
-| PR ≤400 production lines and focused | Keep single PR. |
-| PR >400 production lines, each slice can land independently | Use Stacked PRs to main. |
-| PR >400 production lines, feature must integrate before main | Use Feature Branch Chain with tracker. |
+| PR ≤400 changed lines and focused | Keep single PR. |
+| PR >400, each slice can land independently | Use Stacked PRs to main. |
+| PR >400, feature must integrate before main | Use Feature Branch Chain with tracker. |
 | Generated/vendor/migration diff cannot split cleanly | Ask maintainer for `size:exception`. |
+| No cohesive split fits the budget after one slicing pass | Stop; deliver the best split, report the overage and why it cannot shrink further, and recommend `size:exception`. |
 | SDD provides `delivery_strategy` | Follow it before apply/PR creation. |
+| ODD provides `delivery_strategy` and `chain_strategy` | Follow them before the next work-unit commit or PR creation. |
 
 ## Execution Steps
 
-1. Measure production lines with the command above and identify independent work units.
+1. Estimate changed lines and identify independent work units.
 2. Ask for a chain strategy when none is cached and the budget is exceeded.
 3. Create branches/PRs using the chosen strategy only.
 4. Add Chain Context to each PR without replacing the repo PR template.
@@ -67,7 +47,7 @@ Deletions count. A commit that moves 300 lines out of one file and into another 
 
 ## Output Contract
 
-Return the chosen strategy, PR order, current PR boundary, dependency diagram, review budget (production lines, with the test lines reported separately so the split is visible), verification plan, and any `size:exception` rationale.
+Return the chosen strategy, PR order, current PR boundary, dependency diagram, review budget (`additions + deletions`), verification plan, and any `size:exception` rationale.
 
 ## References
 

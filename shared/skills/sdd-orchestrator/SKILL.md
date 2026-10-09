@@ -9,6 +9,12 @@ description: >
   than do it inline.
 ---
 
+> Current Gentle AI orchestrator instructions (ODD protocol, native review/RDD, delegation,
+> model assignments, remote authorization) are in
+> `references/gentle-ai-orchestrator.md` next to this file. Read it first; the body below
+> is the earlier Agent Teams Lite protocol kept for its load-bearing sections.
+
+
 <!-- gentle-ai:sdd-orchestrator -->
 # Agent Teams Lite — Orchestrator Instructions
 

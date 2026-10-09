@@ -11,8 +11,9 @@ openspec/
 └── changes/                 <- Active changes
     ├── archive/             <- Completed changes (YYYY-MM-DD-{change-name}/)
     └── {change-name}/       <- Active change folder
-        ├── state.yaml       <- DAG state (survives compaction)
+        ├── state.yaml       <- optional recovery hint; may contain dependsOn
         ├── exploration.md   <- (optional) from sdd-explore
+        ├── research.md      <- (optional) source-backed research notes
         ├── proposal.md      <- from sdd-propose
         ├── specs/           <- from sdd-spec
         │   └── {domain}/
@@ -26,9 +27,10 @@ openspec/
 
 | Skill | Creates / Reads | Path |
 |-------|----------------|------|
-| orchestrator | Creates/Updates | `openspec/changes/{change-name}/state.yaml` |
+| orchestrator | Optional recovery hint | `openspec/changes/{change-name}/state.yaml` |
 | sdd-init | Creates | `openspec/config.yaml`, `openspec/specs/`, `openspec/changes/`, `openspec/changes/archive/` |
 | sdd-explore | Creates (optional) | `openspec/changes/{change-name}/exploration.md` |
+| orchestrator | Creates optional research notes | `openspec/changes/{change-name}/research.md` |
 | sdd-propose | Creates | `openspec/changes/{change-name}/proposal.md` |
 | sdd-spec | Creates | `openspec/changes/{change-name}/specs/{domain}/spec.md` |
 | sdd-design | Creates | `openspec/changes/{change-name}/design.md` |
@@ -50,12 +52,30 @@ Config:     openspec/config.yaml
 Main specs: openspec/specs/{domain}/spec.md
 ```
 
+`research.md` stores optional source-backed notes. Preserve historical research and preproposal files; no schema, revision or equality with Engram is required to propose.
+
 ## Writing Rules
 
 - Always create the change directory before writing artifacts
 - If a file already exists, READ it first and UPDATE it (don't overwrite blindly)
 - If the change directory already exists with artifacts, the change is being CONTINUED
 - Use `openspec/config.yaml` `rules` section for project-specific constraints per phase
+
+## Delta Spec Sections
+
+Delta specs MAY include these sections:
+
+```markdown
+## ADDED Requirements
+## MODIFIED Requirements
+## REMOVED Requirements
+## RENAMED Requirements
+```
+
+- `ADDED` appends new requirements to the main spec.
+- `MODIFIED` replaces the full matching requirement block in the main spec. The delta MUST contain the entire updated requirement, including unchanged scenarios that must be preserved.
+- `REMOVED` deletes the matching requirement from the main spec. Each removed requirement MUST include `(Reason: ...)` and SHOULD include `(Migration: ...)` when consumers or persisted behavior are affected.
+- `RENAMED` changes a requirement heading/name without changing behavior unless the delta also includes a `MODIFIED` block for the new requirement. Each rename MUST state old and new names explicitly.
 
 ## Config File Reference
 
@@ -82,7 +102,8 @@ rules:
     - Group by phase, use hierarchical numbering
     - Keep tasks completable in one session
   apply:
-    - Follow existing code patterns
+    guidelines:
+      - Follow existing code patterns
     tdd: false           # Set to true to enable RED-GREEN-REFACTOR
     test_command: ""
   verify:

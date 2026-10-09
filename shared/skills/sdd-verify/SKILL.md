@@ -1,66 +1,65 @@
 ---
 name: sdd-verify
-description: "Trigger: SDD verification phase, verify change. Execute tests and prove implementation matches specs, design, and tasks."
+description: "Trigger: explicitly requested SDD verification. Run optional practical diagnostics against available implementation and artifacts."
 disable-model-invocation: true
 user-invocable: false
 license: MIT
 metadata:
   author: gentleman-programming
-  version: "3.0"
+  version: "4.0"
   delegate_only: true
 ---
 
-> **ORCHESTRATOR GATE**: If you loaded this skill via the `skill()` tool, you are
-> the ORCHESTRATOR — STOP. Do NOT execute these instructions inline. Delegate to
-> the dedicated `sdd-verify` sub-agent using your platform's delegation primitive
-> (e.g., `task(...)`, sub-agent invocation, etc.). This skill is for EXECUTORS
-> only.
+## Execution Role
+
+If you are the dedicated `sdd-verify` executor, perform the diagnostics below; do not delegate. If you are the orchestrator loading this skill, delegate to that executor.
 
 ## Activation Contract
 
-Run when the orchestrator launches verification for an SDD change. You are the quality gate: prove completion with source inspection plus real execution evidence.
+Run when the orchestrator explicitly requests verification. Verification is optional, not a prerequisite for archive.
+
+## Language Domain Contract
+
+Generated technical artifacts default to English. Do not inherit the user's conversational language or the active persona's regional voice for SDD artifacts unless the user explicitly requests that artifact language or the project convention requires it.
+
+If technical artifacts are explicitly requested in another language, use a neutral/professional register unless the user explicitly requests a different tone or regional variant.
+
+Public/contextual comments follow the target context language by default. Explicit user language or tone overrides win; otherwise use a neutral/professional register unless the target context clearly calls for another tone or regional variant.
 
 ## Hard Rules
 
-- Read proposal, spec, design, and tasks before judging implementation.
-- Execute relevant tests; static analysis alone is never verification.
-- A spec scenario is compliant only when a covering test passed at runtime.
-- Compare specs first, design second, task completion third.
-- Do not fix issues; report them for the orchestrator/user.
-- Persist `verify-report` according to mode: Engram, openspec file, hybrid both, or inline-only for `none`.
-- If Strict TDD is active, load `strict-tdd-verify.md` from this skill directory; if inactive, never load it.
-- Return the Section D envelope from `../_shared/sdd-phase-common.md`.
+- Use the supplied structured status, artifact store, change identity, and edit permissions. Verification grants no mutation authority; do not fix code or tasks.
+- Inspect available artifacts and implementation, including partial work. Missing artifacts limit conclusions, not permission to report useful diagnostics.
+- Preserve user-owned `strict_tdd`, test commands, and model/provider/profile/effort selection. When Strict TDD is active, load `strict-tdd-verify.md` and assess the available apply-progress evidence honestly; never fabricate historical RED or GREEN.
+- Report actual command results and limitations. Source inspection, unchecked tasks, and unexecuted tests are not runtime proof. Missing tooling means unavailable checks, not PASS.
+- Do not require a report schema, validator, immutable attestation, evidence search, or settlement. Missing, stale, malformed, or failed reports do not gate archive.
+- SDD never offers, launches, or consumes RDD. Findings do not start automatic review, refuter, or correction loops.
+- Apply `rules.verify` from `openspec/config.yaml` to requested diagnostics without treating report format as archive authority.
 
 ## Decision Gates
 
 | Condition | Action |
 |---|---|
-| Orchestrator says `STRICT TDD MODE IS ACTIVE` | Treat as authoritative. |
-| Cached/config `strict_tdd: true` and runner exists | Strict TDD verify; load module. |
-| Strict TDD false or no runner | Standard verify; skip TDD checks. |
-| Task incomplete | CRITICAL for core task, WARNING for cleanup task. |
-| Test command exits non-zero | CRITICAL. |
-| Spec scenario has no passing covering test | CRITICAL `UNTESTED` or `FAILING`. |
-| Design deviation exists | WARNING unless it breaks a spec. |
+| Partial implementation or missing specs/design | Inspect what exists; name unfinished work and skipped dimensions. |
+| Strict TDD active | Check actual TDD evidence for implemented work; disclose missing evidence. |
+| Test/build fails or a requirement is unmet | Report the finding and its evidence, without editing or certifying completion. |
+| Tooling or permission unavailable | Report the limitation; do not bypass authorization. |
+| Workspace-planning context | Limit diagnostics to accessible planning artifacts; do not edit linked repositories. |
 
 ## Execution Steps
 
-1. Load relevant skills via shared SDD Section A.
-2. Retrieve artifacts via shared Section B for the active persistence mode.
-3. Resolve testing/TDD mode from cached capabilities, config, or project files.
-4. Count completed and incomplete tasks.
-5. Map each spec requirement/scenario to implementation evidence and tests.
-6. Check design decisions against changed code.
-7. Run test, build/type-check, and coverage commands when available.
-8. Build the behavioral compliance matrix from actual test results.
-9. Persist and return the verification report.
+1. Load relevant skills and retrieve available artifacts through shared Sections A/B, using the supplied locators and active store.
+2. Compare implemented behavior with available requirements and design. Record task completion as observed; do not rewrite checkboxes.
+3. Run applicable tests, build/type-check, and other practical project checks within the authorized scope. Adapt depth to the change; do not force exhaustive scenario searches or a fixed evidence matrix.
+4. Record commands, exit codes, useful output, findings, and unavailable or unrun checks. Distinguish verified behavior from assumptions and static observations.
+5. Persist the diagnostic report through shared Section C when the selected store permits it; preserve prior historical findings and identify what changed. Do not rewrite old user reports merely to satisfy a format. Return shared Section D.
 
 ## Output Contract
 
-Return `## Verification Report` with change, mode, completeness table, build/tests/coverage evidence, spec compliance matrix, correctness table, design coherence table, issues grouped as CRITICAL/WARNING/SUGGESTION, and final verdict `PASS`, `PASS WITH WARNINGS`, or `FAIL`.
+Return concise findings, observed task state, executed checks and their outcomes, limitations, and recommended next work. A diagnostic report may be partial or failed; neither blocks archive. Completed implementation normally proceeds to archive; unfinished implementation normally returns to apply. Archive records the actual state, never a synthetic PASS.
 
 ## References
 
-- [references/report-format.md](references/report-format.md) — full report template, compliance statuses, and command evidence fields.
-- [strict-tdd-verify.md](strict-tdd-verify.md) — load only when Strict TDD is active.
+- [references/report-format.md](references/report-format.md) — optional report outline.
+- [strict-tdd-verify.md](strict-tdd-verify.md) — only when Strict TDD is active.
 - `../_shared/sdd-phase-common.md` — skill loading, retrieval, persistence, and return envelope.

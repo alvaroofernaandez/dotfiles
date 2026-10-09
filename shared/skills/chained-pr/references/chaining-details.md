@@ -59,7 +59,7 @@ Append this section to the repo PR template; do not replace required issue/check
 | Base | `<target branch>` |
 | Depends on | <PR/issue/link or "None"> |
 | Follow-up | <next PR or "None"> |
-| Review budget | <production lines> / 400 (plus <test lines> in tests) |
+| Review budget | <changed lines> / 400 |
 | Starts at | <branch, PR, or state this builds on> |
 | Ends with | <standalone result delivered by this PR> |
 
@@ -93,7 +93,7 @@ gh pr create --base feat/my-feature-01-core --title "feat(scope): next focused s
 
 ## Reviewer Guidance
 
-- Ask for a split when a PR exceeds 400 production lines without `size:exception`. Test lines do not count; see the Budget Definition in SKILL.md.
+- Ask for a split when a PR exceeds 400 changed lines without `size:exception`.
 - Recommend Feature Branch Chain when work must integrate before `main`.
 - Recommend stacked PRs when each slice can merge independently.
 - Review child PRs against immediate parent branches; a polluted diff is a branching bug.

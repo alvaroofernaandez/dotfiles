@@ -10,11 +10,21 @@ metadata:
   delegate_only: true
 ---
 
-> **ORCHESTRATOR GATE**: If you loaded this skill via the `skill()` tool, you are
-> the ORCHESTRATOR — STOP. Do NOT execute these instructions inline. Delegate to
-> the dedicated `sdd-propose` sub-agent using your platform's delegation primitive
-> (e.g., `task(...)`, sub-agent invocation, etc.). This skill is for EXECUTORS
-> only.
+## Execution Role
+
+Confirm your role before acting. You are the dedicated `sdd-propose` sub-agent unless you loaded this skill directly through the `skill()` tool.
+
+- If you are the `sdd-propose` sub-agent, continue with the phase work below. Do not delegate. Do not call the Skill tool.
+- If you loaded this skill through the `skill()` tool, you are the orchestrator. Stop here and delegate to the dedicated `sdd-propose` sub-agent using your platform's delegation primitive (for example, `task(...)` or a sub-agent invocation).
+
+
+## Language Domain Contract
+
+Generated technical artifacts default to English. Do not inherit the user's conversational language or the active persona's regional voice for SDD artifacts unless the user explicitly requests that artifact language or the project convention requires it.
+
+If technical artifacts are explicitly requested in another language, use a neutral/professional register unless the user explicitly requests a different tone or regional variant.
+
+Public/contextual comments follow the target context language by default. Explicit user language or tone overrides win; otherwise use a neutral/professional register unless the target context clearly calls for another tone or regional variant.
 
 ## Purpose
 
@@ -24,7 +34,7 @@ You are a sub-agent responsible for creating PROPOSALS. You take the exploration
 
 From the orchestrator:
 - Change name (e.g., "add-dark-mode")
-- Exploration analysis (from sdd-explore) OR direct user description
+- The objective, known product decisions, and available exploration/research findings
 - Artifact store mode (`engram | openspec | hybrid | none`)
 
 ## Execution and Persistence Contract
@@ -89,7 +99,7 @@ Be specific about the user need or technical debt being addressed.}
 > Research `openspec/specs/` before filling this in.
 
 ### New Capabilities
-<!-- Capabilities being introduced. Each becomes a new `openspec/specs/<name>/spec.md`.
+<!-- Capabilities being introduced. Each gets a full spec at `openspec/changes/{change-name}/specs/<name>/spec.md` during the spec phase and becomes `openspec/specs/<name>/spec.md` at archive.
      Use kebab-case names (e.g., user-auth, data-export, api-rate-limiting).
      Leave empty if no new capabilities. -->
 - `<capability-name>`: <brief description of what this capability covers>
@@ -167,11 +177,12 @@ Ready for specs (sdd-spec) or design (sdd-design).
 - Keep the proposal CONCISE - it's a thinking tool, not a novel
 - Every proposal MUST have a rollback plan
 - Every proposal MUST have success criteria
+- Return unresolved product decisions to the orchestrator; do not interview the user, choose for them or infer consent. Pause only dependent work, not the whole proposal for missing research metadata.
 - Use concrete file paths in "Affected Areas" when possible
 - Apply any `rules.proposal` from `openspec/config.yaml`
 - **ALWAYS fill in the Capabilities section** — this is the contract with sdd-spec. Research `openspec/specs/` first to use correct existing capability names.
-- New Capabilities → each will become `openspec/specs/<name>/spec.md` (new full spec)
+- New Capabilities → each gets a full spec at `openspec/changes/{change-name}/specs/<name>/spec.md` during the spec phase and becomes `openspec/specs/<name>/spec.md` at archive
 - Modified Capabilities → each will become a delta spec in the change folder
 - If nothing changes at the spec level (pure refactor, config change), explicitly write "None" under both sub-sections — don't leave them as template placeholders
-- **Size budget**: Proposal artifact MUST be under 450 words. Use bullet points and tables over prose. Headers organize, not explain.
+- **Sufficient detail**: Keep the proposal concise but complete enough to explain intent, scope, risks, rollback and success criteria. Use bullets or tables where they improve clarity. Do not truncate required detail to meet a word or line cap.
 - Return envelope per **Section D** from `skills/_shared/sdd-phase-common.md`.

@@ -20,7 +20,8 @@ Do not create a skill when the pattern is trivial, one-off, or better served by 
 ## Hard Rules
 
 - When working in this repo, first follow `docs/skill-style-guide.md` as the normative source before creating or updating skills.
-- If that guide is unavailable, use the compact inline rules below.
+- For installed global skills, use `references/skill-style-guide.md` as the bundled local copy of that guide when `docs/skill-style-guide.md` is unavailable.
+- If neither guide is available, use the compact inline rules below.
 - A skill is a runtime instruction contract for an LLM, not human documentation.
 - Do not add a `Keywords` section; preserve essential trigger words in `description`.
 - References must point to local files.
@@ -37,9 +38,10 @@ Do not create a skill when the pattern is trivial, one-off, or better served by 
 
 ## Execution Steps
 
-1. Check whether `docs/skill-style-guide.md` exists; if it does, apply it before the inline fallback rules.
-2. Confirm the skill does not already exist and the pattern is reusable.
-3. Create or update `skills/{skill-name}/SKILL.md` using this required structure:
+1. Check whether `docs/skill-style-guide.md` exists; if it does, apply it before the bundled local copy or inline fallback rules.
+2. If the repo guide is unavailable, read `references/skill-style-guide.md` and apply it before the inline fallback rules.
+3. Confirm the skill does not already exist and the pattern is reusable.
+4. Create or update `skills/{skill-name}/SKILL.md` using this required structure:
 
 ```
 skills/{skill-name}/
@@ -50,7 +52,7 @@ skills/{skill-name}/
 └── references/           # Optional - links to local docs
     └── docs.md           # Points to docs/developer-guide/*.mdx
 ```
-4. Use this frontmatter shape:
+5. Use this frontmatter shape:
 
 ```markdown
 ---
@@ -58,12 +60,12 @@ name: {skill-name}
 description: "Trigger: {essential trigger words users or agents will say}. {What this skill does}."
 license: Apache-2.0
 metadata:
-  author: gentleman-programming
+  author: "{your-github-username}"
   version: "1.0"
 ---
 ```
-5. Write sections in this order: Activation Contract, Hard Rules, Decision Gates, Execution Steps, Output Contract, References.
-6. Register the skill in `AGENTS.md` when it is a project skill.
+6. Write sections in this order: Activation Contract, Hard Rules, Decision Gates, Execution Steps, Output Contract, References.
+7. Register the skill in `AGENTS.md` when it is a project skill.
 
 ## Inline Fallback Rules
 
@@ -99,3 +101,4 @@ Return:
 ## References
 
 - `docs/skill-style-guide.md` — normative LLM-first skill style guide for this repo.
+- `references/skill-style-guide.md` — bundled local copy for installed global skills when the repo doc is unavailable.

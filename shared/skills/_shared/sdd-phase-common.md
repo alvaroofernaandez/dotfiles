@@ -6,37 +6,45 @@ Executor boundary: every SDD phase agent is an EXECUTOR, not an orchestrator. Do
 
 ## A. Skill Loading
 
-1. Check if the orchestrator injected a `## Project Standards (auto-resolved)` block in your launch prompt. If yes, follow those rules — they are pre-digested compact rules from the skill registry. **Do NOT read any SKILL.md files.**
-2. If no Project Standards block was provided, check for `SKILL: Load` instructions. If present, load those exact skill files.
+1. Check if the orchestrator injected a `## Skills to load before work` block in your launch prompt. If yes, read those exact `SKILL.md` files before task-specific work.
+2. If no skills block was provided, check for `SKILL: Load` instructions. If present, load those exact skill files.
 3. If neither was provided, search for the skill registry as a fallback:
    a. `mem_search(query: "skill-registry", project: "{project}")` — if found, `mem_get_observation(id)` for full content
    b. Fallback: read `.atl/skill-registry.md` from the project root if it exists
-   c. From the registry's **Compact Rules** section, apply rules whose triggers match your current task.
+   c. From the registry's skills index, match triggers to your task and read the exact listed `SKILL.md` paths.
 4. If no registry exists, proceed with your phase skill only.
 
-NOTE: the preferred path is (1) — compact rules pre-injected by the orchestrator. Paths (2) and (3) are fallbacks for backwards compatibility. Searching the registry is SKILL LOADING, not delegation. If `## Project Standards` is present, IGNORE any `SKILL: Load` instructions — they are redundant.
+NOTE: the preferred path is (1) — exact skill paths selected by the orchestrator. Paths (2) and (3) are fallbacks. Searching the registry is SKILL LOADING, not delegation. If `## Skills to load before work` is present, IGNORE redundant `SKILL: Load` instructions.
 
-## B. Artifact Retrieval (Engram Mode)
+## B. Artifact Retrieval
 
-**CRITICAL**: `mem_search` returns 300-char PREVIEWS, not full content. You MUST call `mem_get_observation(id)` for EVERY artifact. **Skipping this produces wrong output.**
+**`sdd-research` collector exception:** this output-only collector does not read local artifacts, repository state, or Engram state, and does not use artifact locators. It returns its evidence envelope to the orchestrator, which validates and persists it through the selected store route. Sections B and C do not apply to `sdd-research`; every other phase follows them unchanged.
 
-**Run all searches in parallel** — do NOT search sequentially.
+The orchestrator injects the artifact store and the locators native status already resolved (`artifactStore` and `artifactPaths` from `gentle-ai sdd-status --json --instructions`). Read what you are given.
 
-```
-mem_search(query: "sdd/{change-name}/{artifact-type}", project: "{project}") → save ID
-```
+**Do NOT detect the artifact store, and do NOT branch on it.** The dispatcher resolved it from the store the workspace DECLARES. An agent that re-derives the store disagrees with the authority that launched it, which is exactly how a phase ends up reading a store the workspace never declared — or reading nothing at all and returning an empty result.
 
-Then **run all retrievals in parallel**:
+For each artifact your phase requires, read its locator:
 
-```
-mem_get_observation(id: {saved_id}) → full content (REQUIRED)
-```
+| reported store | locator shape | how to read it |
+|---|---|---|
+| `openspec` | repo path, e.g. `openspec/changes/{change-name}/tasks.md` | read the file |
+| `engram` | topic key, e.g. `sdd/{change-name}/tasks` | `mem_search(query: "<locator>", project: "{project}")` → `mem_get_observation(id)` |
+| `hybrid` | either shape | read the file when the locator is a path, the observation when it is a topic key |
 
-Do NOT use search previews as source material.
+**CRITICAL for topic-key locators**: `mem_search` returns 300-char PREVIEWS, not full content. You MUST call `mem_get_observation(id)` for EVERY artifact. **Skipping this produces wrong output.** Do NOT use search previews as source material.
+
+**Run all retrievals in parallel** — do NOT read sequentially.
+
+A required locator reported as `<unresolved>` means the artifact does not exist. Report it as a blocker. Never substitute another store's copy, and never go looking for one.
 
 ## C. Artifact Persistence
 
-Every phase that produces an artifact MUST persist it. Skipping this BREAKS the pipeline — downstream phases will not find your output.
+Every artifact-producing phase other than the output-only `sdd-research` collector MUST persist it. Skipping this BREAKS the pipeline — downstream phases will not find your output.
+
+Persist to the store the orchestrator reported, using that artifact's locator. As in section B, the store is told to you; do not detect it. The write mechanisms below differ because writing a file and saving an observation are genuinely different operations, not because the agent gets to choose between them.
+
+Verification reports are optional diagnostics. Persist honest results without a validator or certificate; preserve historical findings and never fabricate a pass to enable archive.
 
 ### Engram mode
 
@@ -60,13 +68,15 @@ File was already written during the phase's main step. No additional action need
 
 ### Hybrid mode
 
-Do BOTH: write the file to the filesystem AND call `mem_save` as above.
+Attempt BOTH declared writes and read back each successful write. Hybrid writes are not atomic: preserve successful writes and report partial persistence with the outstanding locator. Do not claim a successful mirror, silently substitute another store, or roll back valid progress.
 
 ### None mode
 
 Return result inline only. Do not write any files or call `mem_save`.
 
 ## D. Return Envelope
+
+> **CRITICAL — Response ordering**: Your FINAL output MUST be text (the return envelope), NOT a tool call. If you need to save to Engram (`mem_save`), do it BEFORE your final text response. Do NOT call `mem_session_summary` — that's for top-level agents only. **Why**: When a sub-agent's last action is a tool call, the parent agent receives only the tool result — your text response (the actual analysis) is lost.
 
 Every phase MUST return a structured envelope to the orchestrator:
 
@@ -76,7 +86,13 @@ Every phase MUST return a structured envelope to the orchestrator:
 - `artifacts`: list of artifact keys/paths written
 - `next_recommended`: the next SDD phase to run, or "none"
 - `risks`: risks discovered, or "None"
-- `skill_resolution`: how skills were loaded — `injected` (received Project Standards from orchestrator), `fallback-registry` (self-loaded from registry), `fallback-path` (loaded via SKILL: Load path), or `none` (no skills loaded)
+- `skill_resolution`: how skills were loaded — `paths-injected` (received exact skill paths from orchestrator), `fallback-registry` (self-loaded paths from registry), `fallback-path` (loaded via SKILL: Load path), or `none` (no skills loaded)
+
+**Validating a delegated phase result.** A runtime whose host does not validate task results itself MUST run `gentle-ai sdd-task-result --phase <phase> --cwd <repo> --input <path|->` over the child's raw output before treating it as a result. It exits zero for a usable result and otherwise renders the typed terminal failure below, byte-identical to the one a validating host emits, because both read one definition. Never classify a task result by reading it yourself.
+
+If terminal task-result validation reports `sdd_task_result_empty` or `sdd_task_result_malformed`, do not assume this envelope was delivered. Do not retry automatically or initiate another phase. The terminal value starts with `GENTLE_AI_SDD_FAILURE ` followed by a `gentle-ai.sdd-task-result-failure/v1` JSON handoff; preserve it unchanged, follow its `continuation` exactly once, and execute it only when supplied as a command. Never turn guidance into a guessed command: use only the coordinator's retained structured status for the selected change and artifact store; if unavailable, report the terminal failure and ask the user to select both. Do not infer either, run unscoped status discovery, retry, or launch another phase. Report the typed failure to the user and wait for an explicit decision. A later launch in the same session receives `sdd_task_dispatch_latched` instead: that launch never dispatched, so it names the phase it requested, the earlier phase and code that actually failed, and its `exit` -- start a new session to launch SDD phases again.
+
+OpenCode `background: true` launch acknowledgements and progress signals are nonterminal. They must not produce either transport failure or a session latch; wait for the child to complete, then use the normal artifact/status route.
 
 Example:
 
@@ -86,7 +102,7 @@ Example:
 **Artifacts**: Engram `sdd/{change-name}/proposal` | `openspec/changes/{change-name}/proposal.md`
 **Next**: sdd-spec or sdd-design
 **Risks**: None
-**Skill Resolution**: injected — 3 skills (react-19, typescript, tailwind-4)
+**Skill Resolution**: paths-injected — 3 skills (react-19, typescript, tailwind-4)
 (other values: `fallback-registry`, `fallback-path`, or `none — no registry found`)
 ```
 
@@ -95,7 +111,9 @@ Example:
 SDD must protect reviewer cognitive load, not only generate tasks.
 
 - The default PR review budget is **400 changed lines** (`additions + deletions`).
-- The orchestrator MUST cache a delivery strategy at session start: `ask-on-risk` (default), `auto-chain`, `single-pr`, or `exception-ok`.
+- Count authored text additions plus deletions only for this threshold. Generated goldens are excluded from authored risk count but remain included in complete snapshot identity and receipt validation.
+- The orchestrator MUST cache a delivery strategy at session start: `ask-on-risk` (default), `auto-chain`, `single-pr`, or `exception-ok`. Those four are the whole domain.
+- Any other `delivery_strategy` value is invalid. A phase MUST NOT map it to the nearest branch, MUST NOT record it in an artifact, and MUST NOT forward it: report the unrecognised value and stop.
 - The orchestrator MUST pass `delivery_strategy` to `sdd-tasks` and the resolved decision to `sdd-apply`.
 - `sdd-tasks` MUST forecast whether the planned work may exceed that budget.
 - The forecast MUST include exact plain-text guard lines: `Decision needed before apply: Yes|No`, `Chained PRs recommended: Yes|No`, and `400-line budget risk: Low|Medium|High`.
@@ -105,3 +123,21 @@ SDD must protect reviewer cognitive load, not only generate tasks.
 - In a Feature Branch Chain, PR #1 targets the feature/tracker branch and later child PRs target the immediate previous PR branch; if GitHub shows previous slices in a child diff, retarget/rebase until the diff is clean.
 
 This guard exists to reduce reviewer burnout and keep implementation delivery safe. Do not treat it as optional process noise.
+
+## F. Key Learnings Closing
+
+Close your **final report message** (the return envelope) with a `## Key Learnings` section to enable engram passive capture.
+
+**Format**: numbered list with 1–5 items. Each item is a standalone factual sentence that is ≥20 characters and ≥4 words.
+
+**Example**:
+
+```markdown
+## Key Learnings
+
+1. Async validation in the apply phase caught a race condition in concurrent writes.
+2. Golden test regeneration for system prompts requires the `-update` flag before re-run.
+3. Bounded review contracts must stay consistent across `sdd-phase-common.md` and `engram/protocol.md`.
+```
+
+This applies to your final text response to the orchestrator, not intermediate tool outputs or artifact content. Engram will automatically extract and persist these learnings.

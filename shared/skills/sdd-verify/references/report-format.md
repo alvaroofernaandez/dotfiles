@@ -1,67 +1,14 @@
-# SDD Verify Report Format
+# Optional SDD Diagnostic Report
 
-## Compliance Statuses
+Use only sections useful for the requested checks. This outline is not a schema or an archive certificate.
 
-- ✅ `COMPLIANT`: covering test exists and passed.
-- ❌ `FAILING`: covering test exists but failed.
-- ❌ `UNTESTED`: no covering test found.
-- ⚠️ `PARTIAL`: test passes but covers only part of the scenario.
+- **Scope:** change, implementation inspected, available artifacts, and TDD mode.
+- **Observed progress:** completed and unfinished tasks; do not alter their recorded state.
+- **Checks:** exact commands, exit codes, relevant output, and skipped/unavailable checks with reasons.
+- **Findings:** concrete behavior, requirement or design discrepancies, severity, and supporting evidence. Separate runtime proof from static observations and assumptions.
+- **Historical context:** identify prior report claims and their dates/sources; preserve unresolved findings and explain any changed conclusion.
+- **Summary:** what was verified, what failed or remains unknown, and recommended next work.
 
-## Report Template
+Do not invent output hashes, passing executions, or historical TDD evidence. A missing test or unavailable tool is a limitation, not proof of correctness. Findings are diagnostic; archive may record them without a verification verdict or mandatory remediation cycle. No RDD state is read or required.
 
-~~~markdown
-## Verification Report
-
-**Change**: {change-name}
-**Version**: {spec version or N/A}
-**Mode**: {Strict TDD | Standard}
-
-### Completeness
-| Metric | Value |
-|--------|-------|
-| Tasks total | {N} |
-| Tasks complete | {N} |
-| Tasks incomplete | {N} |
-
-### Build & Tests Execution
-**Build**: ✅ Passed / ❌ Failed
-```text
-{build command and relevant output}
-```
-
-**Tests**: ✅ {N} passed / ❌ {N} failed / ⚠️ {N} skipped
-```text
-{test command and failure details}
-```
-
-**Coverage**: {N}% / threshold: {N}% → ✅ Above / ⚠️ Below / ➖ Not available
-
-### Spec Compliance Matrix
-| Requirement | Scenario | Test | Result |
-|-------------|----------|------|--------|
-| {REQ-01} | {Scenario} | `{file} > {test}` | ✅ COMPLIANT |
-| {REQ-02} | {Scenario} | (none found) | ❌ UNTESTED |
-
-**Compliance summary**: {N}/{total} scenarios compliant
-
-### Correctness (Static Evidence)
-| Requirement | Status | Notes |
-|------------|--------|-------|
-| {Req name} | ✅ Implemented | {brief note} |
-
-### Coherence (Design)
-| Decision | Followed? | Notes |
-|----------|-----------|-------|
-| {Decision} | ✅ Yes | |
-
-### Issues Found
-**CRITICAL**: {list or None}
-**WARNING**: {list or None}
-**SUGGESTION**: {list or None}
-
-### Verdict
-{PASS / PASS WITH WARNINGS / FAIL}
-{one-line reason}
-~~~
-
-When Strict TDD is active, insert the TDD compliance, test layer distribution, changed-file coverage, and quality metrics sections from `strict-tdd-verify.md`.
+When Strict TDD is active, use `strict-tdd-verify.md` to assess available TDD evidence for implemented work without claiming that unobserved RED/GREEN execution occurred.

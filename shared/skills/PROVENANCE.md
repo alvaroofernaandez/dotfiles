@@ -34,6 +34,7 @@ pin with its own provenance header (`gstack-sync.sh`, `p87-sync.sh`,
 | `pytest` | Apache-2.0 | gentleman-programming |
 | `react-19` | Apache-2.0 | gentleman-programming |
 | `readme-guardian` | Apache-2.0 | gentleman-programming |
+| `readme-portal` | Apache-2.0 | alvaroofernaandez |
 | `repo-prep` | Apache-2.0 | — |
 | `sdd-apply` | MIT | gentleman-programming |
 | `sdd-archive` | MIT | gentleman-programming |
