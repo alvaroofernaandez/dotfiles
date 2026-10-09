@@ -43,14 +43,24 @@
         ]
       }
     ],
-    "SessionStart": [
+    "PreToolUse": [
       {
-        "matcher": "",
+        "matcher": "Edit|Write|NotebookEdit",
         "hooks": [
           {
             "type": "command",
-            "command": "code-review-graph status",
-            "timeout": 3000
+            "command": "\"$HOME/.claude/hooks/design-pipeline-gate.sh\"",
+            "timeout": 5000
+          }
+        ]
+      },
+      {
+        "matcher": "Agent",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "gentle-ai sdd-preflight-hook --agent claude-code",
+            "timeout": 30
           }
         ]
       }
@@ -61,6 +71,28 @@
           {
             "type": "command",
             "command": "rm -f /tmp/dk_* /tmp/.dk_* /tmp/dk.json 2>/dev/null"
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "code-review-graph status",
+            "timeout": 3000
+          }
+        ]
+      },
+      {
+        "matcher": "startup|resume|clear|compact",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "gentle-ai review stop-hook --agent claude-code",
+            "timeout": 30
           }
         ]
       }
@@ -76,6 +108,40 @@
             "type": "command",
             "command": "[ -x \"$HOME/.gstack/bin/gstack-verify-gate\" ] && \"$HOME/.gstack/bin/gstack-verify-gate\" || true",
             "timeout": 120000
+          }
+        ]
+      },
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "gentle-ai review stop-hook --agent claude-code",
+            "timeout": 60
+          }
+        ]
+      },
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "gentle-ai telemetry runtime claude --json",
+            "timeout": 5,
+            "async": true
+          }
+        ]
+      }
+    ],
+    "SubagentStop": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "gentle-ai telemetry runtime claude --json",
+            "timeout": 5,
+            "async": true
           }
         ]
       }
@@ -106,34 +172,34 @@
           }
         ]
       }
-    ],
-    "PreToolUse": [
-      {
-        "matcher": "Edit|Write|NotebookEdit",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "\"$HOME/.claude/hooks/design-pipeline-gate.sh\"",
-            "timeout": 5000
-          }
-        ]
-      }
     ]
   },
   "enabledPlugins": {
+    "bencium-innovative-ux-designer@bencium-marketplace": false,
     "claude-code-wakatime@wakatime": true,
-    "engram@engram": true,
-    "warp@claude-code-warp": true,
     "claude-security@claude-plugins-official": true,
-    "typescript-lsp@claude-plugins-official": true,
+    "engram@engram": true,
     "rust-analyzer-lsp@claude-plugins-official": true,
-    "bencium-innovative-ux-designer@bencium-marketplace": false
+    "typescript-lsp@claude-plugins-official": true,
+    "warp@claude-code-warp": true
   },
   "extraKnownMarketplaces": {
+    "bencium-marketplace": {
+      "source": {
+        "source": "github",
+        "repo": "bencium/bencium-marketplace"
+      }
+    },
     "claude-code-warp": {
       "source": {
         "source": "github",
         "repo": "warpdotdev/claude-code-warp"
+      }
+    },
+    "claude-plugins-official": {
+      "source": {
+        "source": "git",
+        "url": "https://github.com/anthropics/claude-plugins-official.git"
       }
     },
     "engram": {
@@ -147,22 +213,16 @@
         "source": "git",
         "url": "https://github.com/wakatime/claude-code-wakatime.git"
       }
-    },
-    "claude-plugins-official": {
-      "source": {
-        "source": "git",
-        "url": "https://github.com/anthropics/claude-plugins-official.git"
-      }
-    },
-    "bencium-marketplace": {
-      "source": {
-        "source": "github",
-        "repo": "bencium/bencium-marketplace"
-      }
     }
   },
+  "outputStyle": "Neutral",
   "language": "Español",
   "effortLevel": "high",
+  "modelSettings": {
+    "claude-opus-5-5": {
+      "effortLevel": "medium"
+    }
+  },
   "autoUpdatesChannel": "latest",
   "tui": "fullscreen",
   "skipDangerousModePermissionPrompt": true,
