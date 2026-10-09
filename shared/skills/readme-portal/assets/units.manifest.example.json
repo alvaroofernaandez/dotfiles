@@ -1,0 +1,14 @@
+{
+  "$comment": "Versions of the units. Bump a unit's version here, in its guide and in CHANGELOG.md whenever its source or a shared module it imports changes. tests/units-manifest.test.mjs keeps these consistent.",
+  "schema_version": 1,
+  "units": [
+    {
+      "id": "myproject.home",
+      "file": "home.tsx",
+      "title": "Home screen",
+      "version": "1.0.0",
+      "since": "0.5.0",
+      "doc": "docs/units/home.md"
+    }
+  ]
+}

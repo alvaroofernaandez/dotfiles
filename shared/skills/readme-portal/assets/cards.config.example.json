@@ -1,0 +1,22 @@
+{
+  "outDir": "docs/assets/readme",
+  "dividerLabel": "Divider",
+  "palette": {
+    "brand": "#2F5D8A",
+    "light": "#EEF4FA",
+    "accent": "#6FA3D6",
+    "gradientFrom": "#A9CBEA",
+    "bgDeep": "#0B1119",
+    "bgMid": "#14202D"
+  },
+  "cards": [
+    { "id": "docs", "icon": "book", "eyebrow": "DOCUMENTATION", "title": "All the documentation", "subtitle": "The index of every guide, by area" },
+    { "id": "install", "icon": "download", "eyebrow": "GET STARTED", "title": "Install in 3 steps", "subtitle": "Download, install and open" },
+    { "id": "architecture", "icon": "layers", "eyebrow": "UNDERSTAND", "title": "Architecture", "subtitle": "The map of the whole system" },
+    { "id": "contributing", "icon": "sliders", "eyebrow": "MAINTAINERS", "title": "Maintainer guide", "subtitle": "Build, release and versioning rules" }
+  ],
+  "heroes": [
+    { "id": "docs", "icon": "book", "eyebrow": "MY PROJECT", "title": "Documentation", "subtitle": "Guides for users and maintainers" },
+    { "id": "scripts", "icon": "terminal", "eyebrow": "scripts", "title": "Scripts", "subtitle": "Build, release and tooling" }
+  ]
+}

@@ -654,6 +654,7 @@ sola vez.
 | :--- | :--- |
 | 📄 `pdf-report` | Documentos PDF A4 de calidad de imprenta, de cualquier tipo |
 | 🏗️ `repo-prep` | Deja un repositorio con descripción, topics y README de la casa |
+| 🧭 `readme-portal` | README visual con tarjetas de imagen, centro de docs, READMEs de carpeta y unidades versionadas |
 | 🎬 `product-demo-video` | Vídeos de demo de producto de 60–90 s |
 | 🚢 `ship` | De árbol de trabajo a PR publicada |
 
