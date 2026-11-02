@@ -1,1 +1,0 @@
-/Users/alvaroofernaandez/agy-harness/commands/agy.md
