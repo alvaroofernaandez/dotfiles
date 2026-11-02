@@ -159,3 +159,5 @@ export PATH="$(go env GOPATH)/bin:$PATH"
 
 # Added by Antigravity CLI installer
 export PATH="/Users/alvaroofernaandez/.local/bin:$PATH"
+
+export PATH="/Users/alvaroofernaandez/.stripe/bin:$PATH"
