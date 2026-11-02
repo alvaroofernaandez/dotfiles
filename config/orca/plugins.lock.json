@@ -1,0 +1,47 @@
+{
+  "version": 1,
+  "plugins": {
+    "stablyai.orca-material-icons": {
+      "pluginKey": "stablyai.orca-material-icons",
+      "version": "1.1.0",
+      "source": {
+        "kind": "marketplace",
+        "marketplace": {
+          "url": "https://github.com/stablyai/orca-plugins.git",
+          "ref": "main",
+          "resolvedCommit": "a0d54e6025268e0286cc2bb7a0c105404150c701"
+        },
+        "plugin": {
+          "url": "https://github.com/stablyai/orca-plugins.git",
+          "ref": "main",
+          "path": "plugins/material-icons"
+        }
+      },
+      "resolvedCommit": "a501d84f15f796248f12678fd92e1f22e50bead4",
+      "contentHash": "21f2dcecf215f92cb122732143a7d511433c7eb729deb8e588ba5a27a48b1aec",
+      "installedAt": 1793613816531,
+      "capabilityHash": "sha256-T1PNoYwrqgwDVLtfmj7L5e0Sq02OEbqHPC8RFhICuUU="
+    },
+    "stablyai.orca-oled-theme": {
+      "pluginKey": "stablyai.orca-oled-theme",
+      "version": "1.1.1",
+      "source": {
+        "kind": "marketplace",
+        "marketplace": {
+          "url": "https://github.com/stablyai/orca-plugins.git",
+          "ref": "main",
+          "resolvedCommit": "a0d54e6025268e0286cc2bb7a0c105404150c701"
+        },
+        "plugin": {
+          "url": "https://github.com/stablyai/orca-plugins.git",
+          "ref": "main",
+          "path": "plugins/oled-theme"
+        }
+      },
+      "resolvedCommit": "07590d2c7bdc8c6c9299123106b9e0525656a411",
+      "contentHash": "0031f20cb30b60b2368ce605c7bfbba6911642f6b323aa395793a66de5a47e44",
+      "installedAt": 1793614662968,
+      "capabilityHash": "sha256-T1PNoYwrqgwDVLtfmj7L5e0Sq02OEbqHPC8RFhICuUU="
+    }
+  }
+}
