@@ -303,4 +303,14 @@ The `<available_skills>` block in your system prompt is authoritative — it lis
 **Self-check BEFORE every response**: does this request match any skill in `<available_skills>`? If yes, invoke it via the built-in `Skill` tool BEFORE generating your reply. This is a blocking requirement, not optional context. Skipping it is a discipline failure.
 
 Multiple skills can apply at once. Match by file context (extensions, paths) and task context (what the user is asking for).
+
+## Docker en macOS
+
+- Use OrbStack as the only Docker runtime. Never use, install or recommend Colima.
+- For images, builds, containers and Compose, use `docker`, `docker compose` and `docker buildx` against the `orbstack` context.
+- Before deleting images, volumes or build cache, show what will be removed and ask for confirmation.
+- After large builds or when disk is low, run the safe cleanup (`docker-space-optimizer`). `orbctl compact` does not exist: OrbStack's disk shrinks on its own.
+- Prefer small images, multi-stage builds, `.dockerignore` and Buildx cache.
+- Do not install Kubernetes unless explicitly asked.
+- Skills: `orbstack-docker`, `docker-space-optimizer`, `orbstack-health`, `docker-build-optimized`.
 <!-- /shared:agent-rules -->
